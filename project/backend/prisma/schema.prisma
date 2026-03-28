@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Valores válidos: "ADMIN" | "CLIENTE" | "MOTORISTA"
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  role      String   @default("CLIENTE")
+  orders    Order[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id          Int         @id @default(autoincrement())
+  name        String
+  type        String      // ex: "Bovino", "Suíno", "Frango", "Cordeiro"
+  pricePerBox Float       @default(0) // preço por caixa em EUR
+  createdAt   DateTime    @default(now())
+  containers  Container[]
+  orderItems  OrderItem[] @relation("OrderItemProduct")
+}
+
+model Container {
+  id         Int         @id @default(autoincrement())
+  label      String      @unique // ex: "C-01"
+  capacity   Int
+  quantity   Int         @default(0)
+  productId  Int?
+  product    Product?    @relation(fields: [productId], references: [id])
+  orderItems OrderItem[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+// Valores válidos: "PENDING" | "CONFIRMED" | "DELIVERED" | "CANCELLED"
+model Order {
+  id                  Int         @id @default(autoincrement())
+  clientId            Int
+  client              User        @relation(fields: [clientId], references: [id])
+  status              String      @default("PENDING")
+  totalBoxes          Int
+  // Entrega
+  address             String      @default("")
+  lat                 Float?
+  lon                 Float?
+  deliveryWindowStart String      @default("08:00") // "HH:MM"
+  deliveryWindowEnd   String      @default("18:00") // "HH:MM"
+  // Peso e assinatura
+  weightKg            Float       @default(0)
+  signature           String?
+  deliveredAt         DateTime?
+  deliveredById       Int?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+  items               OrderItem[]
+}
+
+model OrderItem {
+  id          Int       @id @default(autoincrement())
+  orderId     Int
+  order       Order     @relation(fields: [orderId], references: [id])
+  containerId Int
+  container   Container @relation(fields: [containerId], references: [id])
+  productId   Int
+  product     Product   @relation("OrderItemProduct", fields: [productId], references: [id])
+  quantity    Int
+  weightKg    Float     @default(0)
+}

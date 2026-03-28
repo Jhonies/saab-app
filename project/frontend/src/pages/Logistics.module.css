@@ -1,0 +1,369 @@
+/* ─────────────────────────────────────────
+   Logistics.module.css — SAAB Módulo C
+───────────────────────────────────────── */
+
+.page {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ── Header ── */
+.header { display: flex; flex-direction: column; gap: 0.25rem; }
+
+.eyebrow {
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: #8b0000;
+  margin: 0;
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #f0f0f0;
+  margin: 0;
+}
+
+/* ── KPI Grid ── */
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 480px) {
+  .kpiGrid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.kpiCard {
+  background-color: #1e1e1e;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  padding: 1rem 1.25rem;
+  border-top: 3px solid transparent;
+}
+
+.kpiCard.kpiTotal     { border-top-color: #333; }
+.kpiCard.kpiPending   { border-top-color: #fbbf24; }
+.kpiCard.kpiTransit   { border-top-color: #60a5fa; }
+.kpiCard.kpiDelivered { border-top-color: #4ade80; }
+
+.kpiLabel {
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #555;
+  margin: 0 0 0.375rem;
+}
+
+.kpiValue {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #f0f0f0;
+  margin: 0;
+  line-height: 1;
+}
+
+/* ── Table card ── */
+.card {
+  background-color: #1e1e1e;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+/* ── Filter bar ── */
+.filterBar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid #252525;
+  flex-wrap: wrap;
+}
+
+.filterBtn {
+  background: transparent;
+  border: 1px solid #333;
+  border-radius: 999px;
+  padding: 0.3rem 0.875rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #666;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s, background-color 0.15s, color 0.15s;
+}
+
+.filterBtn:hover {
+  border-color: #555;
+  color: #aaa;
+}
+
+.filterBtn.active {
+  background: #8b0000;
+  border-color: #8b0000;
+  color: #fff;
+}
+
+.filterCount {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: #555;
+  white-space: nowrap;
+}
+
+/* ── Table ── */
+.tableWrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.table thead {
+  background-color: #252525;
+  border-bottom: 1px solid #333;
+}
+
+.table th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #666;
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 0.875rem 1rem;
+  color: #ccc;
+  border-bottom: 1px solid #252525;
+  vertical-align: middle;
+}
+
+.table tbody tr:last-child td { border-bottom: none; }
+
+.table tbody tr:hover td { background-color: #222; }
+
+/* ── Signature cell ── */
+.sigImg {
+  height: 36px;
+  border-radius: 3px;
+  background: #f8f8f8;
+  padding: 2px;
+  display: block;
+}
+
+.sigEmpty {
+  color: #444;
+  font-size: 0.75rem;
+}
+
+/* ── Status badge ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: 0.25rem 0.625rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.badge.PENDING   { background: #1f1200; color: #fbbf24; }
+.badge.CONFIRMED { background: #0a1a2e; color: #60a5fa; }
+.badge.DELIVERED { background: #0a1f0a; color: #4ade80; }
+.badge.CANCELLED { background: #1f0a0a; color: #f87171; }
+
+.badgeDot {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* ── Action button ── */
+.routeBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: none;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #888;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.routeBtn:hover {
+  border-color: #1a6bb5;
+  color: #60a5fa;
+}
+
+.routeBtn svg { width: 0.875rem; height: 0.875rem; }
+
+/* ── Action buttons group ── */
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.invoiceBtn:hover {
+  border-color: #8b0000 !important;
+  color: #f87171 !important;
+}
+
+.signBtn:hover {
+  border-color: #15803d !important;
+  color: #4ade80 !important;
+}
+
+.confirmBtn:hover {
+  border-color: #15803d !important;
+  color: #4ade80 !important;
+}
+
+.cancelBtn {
+  border-color: #3d0000 !important;
+  color: #8b0000 !important;
+}
+
+.cancelBtn:hover {
+  background: #3d0000 !important;
+  color: #f4a0a0 !important;
+}
+
+/* ── Empty / Loading ── */
+.stateRow td {
+  text-align: center;
+  padding: 3rem 1rem !important;
+  color: #444;
+}
+
+.stateRow.error td { color: #f87171; }
+
+/* ══════════════════════════════════════
+   MODAL
+══════════════════════════════════════ */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 1rem;
+}
+
+.modal {
+  background-color: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 640px;
+  max-height: 90svh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.7);
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #2a2a2a;
+  flex-shrink: 0;
+}
+
+.modalTitle {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #f0f0f0;
+  margin: 0;
+}
+
+.modalMeta {
+  font-size: 0.75rem;
+  color: #555;
+  margin: 0.2rem 0 0;
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  color: #555;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s;
+}
+
+.closeBtn:hover { color: #f0f0f0; }
+.closeBtn svg   { width: 1.125rem; height: 1.125rem; }
+
+/* ── Map iframe ── */
+.mapFrame {
+  width: 100%;
+  height: 380px;
+  border: none;
+  display: block;
+  flex-shrink: 0;
+}
+
+/* ── Modal info row ── */
+.modalInfo {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0;
+  border-top: 1px solid #2a2a2a;
+  flex-shrink: 0;
+}
+
+.infoCell {
+  padding: 0.875rem 1.25rem;
+  border-right: 1px solid #2a2a2a;
+}
+
+.infoCell:last-child { border-right: none; }
+
+.infoLabel {
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #555;
+  margin: 0 0 0.2rem;
+}
+
+.infoValue {
+  font-size: 0.8125rem;
+  color: #ccc;
+  margin: 0;
+}

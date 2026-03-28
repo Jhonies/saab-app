@@ -1,0 +1,192 @@
+/* ─────────────────────────────────────────
+   InventoryGrid.module.css — SAAB
+───────────────────────────────────────── */
+
+/* ── Wrapper ── */
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* ── Search bar ── */
+.searchBar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background-color: #1e1e1e;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  padding: 0 1rem;
+}
+
+.searchIcon {
+  width: 1rem;
+  height: 1rem;
+  color: #555;
+  flex-shrink: 0;
+}
+
+.searchInput {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  padding: 0.75rem 0;
+  font-size: 0.875rem;
+  color: #f0f0f0;
+}
+
+.searchInput::placeholder {
+  color: #505050;
+}
+
+.searchCount {
+  font-size: 0.75rem;
+  color: #555;
+  white-space: nowrap;
+}
+
+/* ── Grid ── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.875rem;
+}
+
+@media (min-width: 480px) {
+  .grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (min-width: 768px) {
+  .grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+@media (min-width: 1280px) {
+  .grid { grid-template-columns: repeat(6, 1fr); }
+}
+
+/* ── Card ── */
+.card {
+  background-color: #1e1e1e;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  transition: border-color 0.2s, box-shadow 0.2s, background-color 0.15s;
+  cursor: pointer;
+}
+
+.card:hover { background-color: #222; }
+
+.card.highlighted {
+  border-color: #1a6bb5;
+  box-shadow: 0 0 0 3px rgba(26, 107, 181, 0.25), 0 0 16px rgba(26, 107, 181, 0.2);
+}
+
+/* ── Card header ── */
+.cardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cardLabel {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #888;
+}
+
+/* ── Status badge ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+}
+
+.badge.empty   { background-color: #0d2b0d; color: #4ade80; }
+.badge.partial { background-color: #2b1f0a; color: #fbbf24; }
+.badge.full    { background-color: #2b0a0a; color: #f87171; }
+
+.badgeDot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+}
+
+.badge.empty   .badgeDot { background-color: #4ade80; }
+.badge.partial .badgeDot { background-color: #fbbf24; }
+.badge.full    .badgeDot { background-color: #f87171; }
+
+/* ── Product info ── */
+.productName {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #f0f0f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.productType {
+  font-size: 0.6875rem;
+  color: #666;
+}
+
+.emptySlot {
+  font-size: 0.8125rem;
+  color: #444;
+  font-style: italic;
+}
+
+/* ── Progress bar ── */
+.progressWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.progressTrack {
+  width: 100%;
+  height: 5px;
+  background-color: #2a2a2a;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.progressFill.empty   { background-color: #4ade80; }
+.progressFill.partial { background-color: #fbbf24; }
+.progressFill.full    { background-color: #f87171; }
+
+.progressLabel {
+  font-size: 0.625rem;
+  color: #555;
+  text-align: right;
+}
+
+/* ── Loading / Error states ── */
+.stateBox {
+  grid-column: 1 / -1;
+  padding: 3rem 1rem;
+  text-align: center;
+  color: #555;
+  font-size: 0.875rem;
+}
+
+.stateBox.error { color: #f87171; }

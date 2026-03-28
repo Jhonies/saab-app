@@ -1,0 +1,225 @@
+/* ─────────────────────────────────────────
+   OrderEntry.module.css — SAAB Módulo B
+───────────────────────────────────────── */
+
+.page {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ── Page header ── */
+.header { display: flex; flex-direction: column; gap: 0.25rem; }
+
+.eyebrow {
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: #8b0000;
+  margin: 0;
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #f0f0f0;
+  margin: 0;
+}
+
+/* ── Layout: form + summary side-by-side on wide screens ── */
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+@media (min-width: 900px) {
+  .body {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+}
+
+/* ── Card base ── */
+.card {
+  background-color: #1e1e1e;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  padding: 1.5rem;
+}
+
+.cardTitle {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: #555;
+  margin: 0 0 1.25rem;
+}
+
+/* ── Form ── */
+.form {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.125rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #888;
+}
+
+.select,
+.input {
+  background-color: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  padding: 0.7rem 0.875rem;
+  font-size: 0.875rem;
+  color: #f0f0f0;
+  outline: none;
+  width: 100%;
+  transition: border-color 0.18s, box-shadow 0.18s;
+  appearance: none;
+}
+
+.select:focus,
+.input:focus {
+  border-color: #8b0000;
+  box-shadow: 0 0 0 3px rgba(139, 0, 0, 0.2);
+}
+
+.select option { background-color: #2a2a2a; }
+
+.input::placeholder { color: #505050; }
+
+.input:disabled,
+.select:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Stock indicator under container select */
+.stockHint {
+  font-size: 0.75rem;
+  margin: 0;
+  padding: 0.4rem 0.625rem;
+  border-radius: 4px;
+  background-color: #252525;
+  border: 1px solid #2e2e2e;
+}
+
+.stockHint.ok      { color: #4ade80; }
+.stockHint.warning { color: #fbbf24; }
+.stockHint.danger  { color: #f87171; }
+
+/* ── Error / Success banners ── */
+.banner {
+  font-size: 0.8125rem;
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.banner.error {
+  background-color: #1f0a0a;
+  border: 1px solid rgba(139, 0, 0, 0.45);
+  color: #f87171;
+}
+
+.banner.success {
+  background-color: #0a1f0a;
+  border: 1px solid rgba(74, 222, 128, 0.35);
+  color: #4ade80;
+}
+
+/* ── Submit button ── */
+.submitBtn {
+  margin-top: 0.5rem;
+  width: 100%;
+  background-color: #8b0000;
+  border: none;
+  border-radius: 4px;
+  padding: 0.8125rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 0.18s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.submitBtn:hover:not(:disabled) { background-color: #720000; }
+.submitBtn:active:not(:disabled){ background-color: #5a0000; }
+.submitBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Spinner ── */
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.spinner {
+  width: 1rem;
+  height: 1rem;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+/* ── Order summary card ── */
+.summary {
+  width: 100%;
+}
+
+@media (min-width: 900px) {
+  .summary { width: 280px; flex-shrink: 0; }
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #252525;
+  font-size: 0.8125rem;
+  color: #888;
+}
+
+.summaryRow:last-child { border-bottom: none; }
+
+.summaryRow span:last-child {
+  color: #f0f0f0;
+  font-weight: 600;
+}
+
+.summaryTotal {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #333;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #f0f0f0;
+}
+
+.summaryTotal span:last-child {
+  font-size: 1.125rem;
+  color: #f0f0f0;
+}
