@@ -1,8 +1,15 @@
 {
   "permissions": {
     "allow": [
+      "Bash(curl:*)",
+      "Bash(npm install:*)",
+      "Bash(npx prisma:*)",
       "Bash(docker compose:*)",
-      "Bash(curl:*)"
+      "Bash(npx vite:*)",
+      "Bash(grep -r \"EUR\\\\|€\\\\|euro\" /c/Users/vlope/Desktop/Project/saab-app/project/backend/src /c/Users/vlope/Desktop/Project/saab-app/project/backend/prisma --include=*.js --include=*.ts --include=*.json)",
+      "Bash(grep -r \"pricePerBox\\\\|preço\\\\|Preço\" /c/Users/vlope/Desktop/Project/saab-app/project/backend/src --include=*.js --include=*.ts)",
+      "Bash(grep -r \"currency\\\\|Currency\\\\|USD\\\\|BRL\\\\|dólar\" /c/Users/vlope/Desktop/Project/saab-app/project --include=*.js --include=*.jsx --include=*.ts --include=*.tsx)",
+      "Bash(grep -r \"Orlando\\\\|Florida\" /c/Users/vlope/Desktop/Project/saab-app/project --include=*.js --include=*.jsx --include=*.ts --include=*.tsx)"
     ]
   }
 }
