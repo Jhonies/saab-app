@@ -20,6 +20,12 @@ const SearchIcon = () => (
   </svg>
 )
 
+const ClearIcon = () => (
+  <svg className={styles.clearIcon} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+  </svg>
+)
+
 const ChevronIcon = ({ open }) => (
   <svg
     className={`${styles.chevron} ${open ? styles.chevronOpen : ''}`}
@@ -205,15 +211,17 @@ const InventoryGrid = () => {
 
   const query = search.trim().toLowerCase()
 
-  const isHighlighted = useCallback((c) =>
-    query.length > 0 &&
-    (
-      c.product?.name.toLowerCase().includes(query) ||
-      c.product?.type.toLowerCase().includes(query) ||
-      c.label.toLowerCase().includes(query)
-    ), [query])
+  const matchesQuery = useCallback((c) =>
+    c.product?.name.toLowerCase().includes(query) ||
+    c.product?.type.toLowerCase().includes(query) ||
+    c.label.toLowerCase().includes(query)
+  , [query])
 
-  const matchCount = query ? containers.filter(isHighlighted).length : null
+  const isSearching = query.length > 0
+
+  const filtered = useMemo(() =>
+    isSearching ? containers.filter(matchesQuery) : []
+  , [isSearching, containers, matchesQuery])
 
   /* Group containers by zone */
   const grouped = useMemo(() => {
@@ -245,10 +253,19 @@ const InventoryGrid = () => {
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
-        {matchCount !== null && (
-          <span className={styles.searchCount}>
-            {matchCount} resultado{matchCount !== 1 ? 's' : ''}
-          </span>
+        {isSearching && (
+          <>
+            <span className={styles.searchCount}>
+              {filtered.length} resultado{filtered.length !== 1 ? 's' : ''}
+            </span>
+            <button
+              className={styles.clearBtn}
+              onClick={() => setSearch('')}
+              aria-label="Limpar busca"
+            >
+              <ClearIcon />
+            </button>
+          </>
         )}
       </div>
 
@@ -256,8 +273,28 @@ const InventoryGrid = () => {
       {loading && <p className={styles.stateBox}>A carregar contêineres…</p>}
       {!loading && error && <p className={`${styles.stateBox} ${styles.error}`}>{error}</p>}
 
-      {/* Zone sections */}
-      {!loading && !error && ZONE_CONFIG.map(zone => {
+      {/* Search results */}
+      {!loading && !error && isSearching && (
+        <div className={styles.searchResults}>
+          {filtered.length === 0 ? (
+            <p className={styles.stateBox}>Nenhum resultado para "{search.trim()}"</p>
+          ) : (
+            <div className={styles.resultsGrid}>
+              {filtered.map(c => (
+                <ContainerCard
+                  key={c.id}
+                  container={c}
+                  highlighted={false}
+                  onClick={() => setSelectedContainer(c)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Zone sections (hidden during search) */}
+      {!loading && !error && !isSearching && ZONE_CONFIG.map(zone => {
         const zoneContainers = grouped[zone.key] || []
         if (zoneContainers.length === 0) return null
 
@@ -266,7 +303,7 @@ const InventoryGrid = () => {
             <SecosZoneSection
               key={zone.key}
               containers={zoneContainers}
-              isHighlighted={isHighlighted}
+              isHighlighted={() => false}
               onSelect={setSelectedContainer}
               defaultOpen={true}
             />
@@ -278,7 +315,7 @@ const InventoryGrid = () => {
             key={zone.key}
             zone={zone}
             containers={zoneContainers}
-            isHighlighted={isHighlighted}
+            isHighlighted={() => false}
             onSelect={setSelectedContainer}
             defaultOpen={true}
           />

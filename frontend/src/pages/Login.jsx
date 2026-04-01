@@ -7,6 +7,7 @@ import styles from './Login.module.css'
 
 const ROLE_REDIRECT = {
   ADMIN:     '/admin/dashboard',
+  EXPEDICAO: '/expedicao/dashboard',
   CLIENTE:   '/cliente/orders',
   MOTORISTA: '/motorista/routes',
 }

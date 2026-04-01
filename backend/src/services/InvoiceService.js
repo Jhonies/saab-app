@@ -174,6 +174,37 @@ const generateInvoice = (order, stream) => {
   doc.font('Helvetica-Bold').fontSize(18).fillColor(COLOR.white)
      .text(fmt(grandTotal), totalX + 12, totalBoxY + 22, { width: totalW - 20, align: 'right' })
 
+  /* ── SIGNATURE ── */
+  const sigY = y + 80
+  if (order.signature && order.signature.startsWith('data:image/')) {
+    doc.font('Helvetica-Bold').fontSize(7).fillColor(COLOR.midGray)
+       .text('ASSINATURA DO CLIENTE', PL, sigY)
+
+    // Fundo branco + borda para a área da assinatura
+    const sigBoxX = PL
+    const sigBoxY = sigY + 14
+    const sigBoxW = 200
+    const sigBoxH = 70
+
+    doc.rect(sigBoxX, sigBoxY, sigBoxW, sigBoxH)
+       .fillAndStroke('#ffffff', '#dddddd')
+
+    try {
+      const base64Data = order.signature.replace(/^data:image\/\w+;base64,/, '')
+      const sigBuffer  = Buffer.from(base64Data, 'base64')
+      doc.image(sigBuffer, sigBoxX + 10, sigBoxY + 5, {
+        width:  sigBoxW - 20,
+        height: sigBoxH - 10,
+        fit:    [sigBoxW - 20, sigBoxH - 10],
+        align:  'center',
+        valign: 'center',
+      })
+    } catch (_) { /* ignora se a imagem for inválida */ }
+
+    doc.font('Helvetica').fontSize(7).fillColor(COLOR.midGray)
+       .text(order.client?.email ?? '', PL, sigBoxY + sigBoxH + 4)
+  }
+
   /* ── FOOTER ── */
   const footerY = H - 52
   doc.rect(0, footerY, W, 52).fill(COLOR.dark)
@@ -181,12 +212,12 @@ const generateInvoice = (order, stream) => {
   doc.moveTo(0, footerY).lineTo(W, footerY)
      .strokeColor(COLOR.red).lineWidth(2).stroke()
 
+  const footerText = order.signature
+    ? 'SAAB Logistics  ·  Orlando, FL  ·  Documento assinado digitalmente pelo cliente.'
+    : 'SAAB Logistics  ·  Orlando, FL  ·  Documento aguarda assinatura do cliente.'
+
   doc.font('Helvetica').fontSize(8).fillColor(COLOR.midGray)
-     .text(
-       'SAAB Logistics  ·  Orlando, FL  ·  Auto-generated document — no signature required.',
-       PL, footerY + 14,
-       { width: W - PL * 2, align: 'center' }
-     )
+     .text(footerText, PL, footerY + 14, { width: W - PL * 2, align: 'center' })
 
   doc.end()
 }

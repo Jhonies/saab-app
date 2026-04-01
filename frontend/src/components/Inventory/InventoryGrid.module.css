@@ -43,23 +43,65 @@
 
 .searchCount {
   font-size: 0.75rem;
-  color: #555;
+  color: #888;
   white-space: nowrap;
+}
+
+.clearBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  flex-shrink: 0;
+  transition: background-color 0.15s;
+}
+
+.clearBtn:hover { background-color: #333; }
+
+.clearIcon {
+  width: 1rem;
+  height: 1rem;
+  color: #888;
 }
 
 /* ── Grid ── */
 .grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  display: flex;
   gap: 0.875rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  padding-bottom: 0.25rem;
+}
+
+.grid::-webkit-scrollbar { display: none; }
+
+.grid > * {
+  flex: 0 0 44%;
+  min-width: 0;
+  scroll-snap-align: start;
 }
 
 @media (min-width: 480px) {
-  .grid { grid-template-columns: repeat(3, 1fr); }
+  .grid > * { flex: 0 0 31%; }
 }
 
 @media (min-width: 768px) {
-  .grid { grid-template-columns: repeat(4, 1fr); }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    overflow-x: visible;
+  }
+  .grid > * { flex: none; }
+}
+
+@media (min-width: 1024px) {
+  .grid { grid-template-columns: repeat(5, 1fr); }
 }
 
 @media (min-width: 1280px) {
@@ -185,7 +227,6 @@
   background-color: #1e1e1e;
   border: 1px solid #2a2a2a;
   border-radius: 6px;
-  overflow: hidden;
 }
 
 .zoneToggle {
@@ -196,6 +237,7 @@
   padding: 1rem 1.25rem;
   background: none;
   border: none;
+  border-radius: 6px;
   cursor: pointer;
   text-align: left;
   transition: background-color 0.15s;
@@ -271,6 +313,35 @@
 .subZoneStats {
   font-size: 0.6875rem;
   color: #666;
+}
+
+/* ── Search results ── */
+.searchResults {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.resultsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.875rem;
+}
+
+@media (min-width: 480px) {
+  .resultsGrid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (min-width: 768px) {
+  .resultsGrid { grid-template-columns: repeat(4, 1fr); }
+}
+
+@media (min-width: 1024px) {
+  .resultsGrid { grid-template-columns: repeat(5, 1fr); }
+}
+
+@media (min-width: 1280px) {
+  .resultsGrid { grid-template-columns: repeat(6, 1fr); }
 }
 
 /* ── Loading / Error states ── */

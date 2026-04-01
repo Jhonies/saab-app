@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { fetchOrders, openInvoice, updateOrderStatus } from '../services/orderService'
-import SignatureModal from '../components/SignatureModal'
+import { fetchOrders, openInvoice, updateOrderStatus, deliverOrder } from '../services/orderService'
 import styles from './Logistics.module.css'
 
 /* ────────────────────────────────────────
@@ -148,7 +147,6 @@ const Logistics = () => {
   const [loading,   setLoading]   = useState(true)
   const [error,     setError]     = useState('')
   const [activeMap, setActiveMap] = useState(null)
-  const [activeSig, setActiveSig] = useState(null)
   const [filter,    setFilter]    = useState('ALL')
 
   const handleStatusChange = async (orderId, status) => {
@@ -157,6 +155,16 @@ const Logistics = () => {
       setOrders(prev => prev.map(o => o.id === updated.id ? updated : o))
     } catch (err) {
       alert(err.response?.data?.message ?? 'Erro ao actualizar status.')
+    }
+  }
+
+  const handleDeliver = async (orderId) => {
+    if (!window.confirm('Confirmar entrega deste pedido?')) return
+    try {
+      const updated = await deliverOrder(orderId)
+      setOrders(prev => prev.map(o => o.id === updated.id ? updated : o))
+    } catch (err) {
+      alert(err.response?.data?.message ?? 'Erro ao marcar como entregue.')
     }
   }
 
@@ -309,13 +317,15 @@ const Logistics = () => {
                           <IconMap />
                           Rota
                         </button>
-                        <button
-                          className={`${styles.routeBtn} ${styles.invoiceBtn}`}
-                          onClick={() => openInvoice(order.id)}
-                        >
-                          <IconPdf />
-                          Invoice
-                        </button>
+                        {order.status !== 'PENDING' && (
+                          <button
+                            className={`${styles.routeBtn} ${styles.invoiceBtn}`}
+                            onClick={() => openInvoice(order.id)}
+                          >
+                            <IconPdf />
+                            Invoice
+                          </button>
+                        )}
                         {order.status === 'PENDING' && (
                           <button
                             className={`${styles.routeBtn} ${styles.confirmBtn}`}
@@ -335,7 +345,7 @@ const Logistics = () => {
                         {order.status !== 'DELIVERED' && order.status !== 'CANCELLED' && (
                           <button
                             className={`${styles.routeBtn} ${styles.signBtn}`}
-                            onClick={() => setActiveSig(order)}
+                            onClick={() => handleDeliver(order.id)}
                           >
                             <IconSign />
                             Entregar
@@ -353,17 +363,6 @@ const Logistics = () => {
 
       {activeMap && (
         <RouteModal order={activeMap} onClose={() => setActiveMap(null)} />
-      )}
-
-      {activeSig && (
-        <SignatureModal
-          order={activeSig}
-          onClose={() => setActiveSig(null)}
-          onDelivered={(updated) => {
-            setOrders(prev => prev.map(o => o.id === updated.id ? updated : o))
-            setActiveSig(null)
-          }}
-        />
       )}
 
     </div>

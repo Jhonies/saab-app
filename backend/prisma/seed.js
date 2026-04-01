@@ -288,6 +288,18 @@ const OB = [
 ]
 
 /* ───────────────────────────────────────────────────────────────
+ * CAPACIDADE — calcula o máximo de caixas por contêiner
+ * ─────────────────────────────────────────────────────────────── */
+function capacityForQty(qty) {
+  if (qty <= 10)   return 100
+  if (qty <= 100)  return 250
+  if (qty <= 500)  return 850
+  if (qty <= 1000) return 3000
+  if (qty <= 2000) return 5000
+  return 7000
+}
+
+/* ───────────────────────────────────────────────────────────────
  * ZONAS — associa cada grupo ao zone/subZone e prefixo de label
  * ─────────────────────────────────────────────────────────────── */
 const ZONES = [
@@ -408,7 +420,7 @@ async function main() {
           label,
           zone:      z.zone,
           subZone:   z.subZone ?? null,
-          capacity:  9999,
+          capacity:  capacityForQty(qty),
           quantity:  qty,
           productId: product.id,
         },

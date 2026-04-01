@@ -64,8 +64,21 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  gap: 0;
+}
+
+.formFields {
+  display: flex;
+  flex-direction: column;
   gap: 1.125rem;
 }
+
+.fieldRow {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.fieldRow > * { flex: 1; }
 
 .field {
   display: flex;
@@ -79,6 +92,13 @@
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: #888;
+}
+
+.optional {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  color: #555;
 }
 
 .select,
@@ -144,6 +164,103 @@
   background-color: #0a1f0a;
   border: 1px solid rgba(74, 222, 128, 0.35);
   color: #4ade80;
+}
+
+/* ── Add item button ── */
+.addBtn {
+  width: 100%;
+  background: none;
+  border: 2px dashed #3a3a3a;
+  border-radius: 4px;
+  padding: 0.75rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #888;
+  cursor: pointer;
+  transition: border-color 0.18s, color 0.18s;
+}
+
+.addBtn:hover:not(:disabled) {
+  border-color: #8b0000;
+  color: #f0f0f0;
+}
+
+.addBtn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* ── Cart section ── */
+.cartSection {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #2a2a2a;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.cartList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cartItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  background-color: #252525;
+  border: 1px solid #2e2e2e;
+  border-radius: 4px;
+  padding: 0.625rem 0.875rem;
+}
+
+.cartItemInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.cartItemName {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #f0f0f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cartItemMeta {
+  font-size: 0.6875rem;
+  color: #666;
+}
+
+.cartRemoveBtn {
+  background: none;
+  border: none;
+  color: #555;
+  cursor: pointer;
+  padding: 0.35rem;
+  border-radius: 4px;
+  display: flex;
+  flex-shrink: 0;
+  transition: color 0.15s, background-color 0.15s;
+}
+
+.cartRemoveBtn:hover {
+  color: #f87171;
+  background-color: #1f0a0a;
+}
+
+/* ── Summary item label ── */
+.summaryItemLabel {
+  font-size: 0.75rem;
+  max-width: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ── Submit button ── */

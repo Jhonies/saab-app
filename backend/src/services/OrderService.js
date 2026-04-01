@@ -8,42 +8,55 @@ const INCLUDE_FULL = {
 }
 
 /* ── Create ── */
-const createOrder = async ({ clientId, containerId, productId, quantity, weightKg = 0 }) => {
+const createOrder = async ({ clientId, items }) => {
   return prisma.$transaction(async (tx) => {
-    const container = await tx.container.findUnique({ where: { id: containerId } })
+    const itemsToCreate = []
+    let totalBoxes = 0
+    let totalWeight = 0
 
-    if (!container) {
-      throw Object.assign(new Error('Contêiner não encontrado.'), { status: 404 })
+    for (const item of items) {
+      const container = await tx.container.findUnique({ where: { id: item.containerId } })
+
+      if (!container) {
+        throw Object.assign(new Error(`Contêiner #${item.containerId} não encontrado.`), { status: 404 })
+      }
+
+      if (container.productId !== item.productId) {
+        throw Object.assign(
+          new Error(`Produto não corresponde ao contêiner ${container.label}.`),
+          { status: 400 }
+        )
+      }
+
+      if (container.quantity < item.quantity) {
+        throw Object.assign(
+          new Error(`Stock insuficiente em ${container.label}. Disponível: ${container.quantity} cxs. Solicitado: ${item.quantity} cxs.`),
+          { status: 422 }
+        )
+      }
+
+      await tx.container.update({
+        where: { id: item.containerId },
+        data:  { quantity: { decrement: item.quantity } },
+      })
+
+      totalBoxes += item.quantity
+      totalWeight += item.weightKg || 0
+      itemsToCreate.push({
+        containerId: item.containerId,
+        productId:   item.productId,
+        quantity:    item.quantity,
+        weightKg:    item.weightKg || 0,
+      })
     }
-
-    if (container.productId !== productId) {
-      throw Object.assign(
-        new Error('Produto não corresponde ao contêiner selecionado.'),
-        { status: 400 }
-      )
-    }
-
-    if (container.quantity < quantity) {
-      throw Object.assign(
-        new Error(`Stock insuficiente. Disponível: ${container.quantity} cxs. Solicitado: ${quantity} cxs.`),
-        { status: 422 }
-      )
-    }
-
-    await tx.container.update({
-      where: { id: containerId },
-      data:  { quantity: { decrement: quantity } },
-    })
 
     return tx.order.create({
       data: {
         clientId,
         status:     'PENDING',
-        totalBoxes: quantity,
-        weightKg,
-        items: {
-          create: { containerId, productId, quantity, weightKg },
-        },
+        totalBoxes,
+        weightKg:   totalWeight,
+        items:      { create: itemsToCreate },
       },
       include: INCLUDE_FULL,
     })
@@ -66,32 +79,38 @@ const getOrderById = (id) =>
   })
 
 /* ── Deliver ── */
-const deliverOrder = async (id, { signature, deliveredById }) => {
+const deliverOrder = async (id, { signature, deliveredById } = {}) => {
   const order = await prisma.order.findUnique({ where: { id: Number(id) } })
 
   if (!order) {
     throw Object.assign(new Error('Pedido não encontrado.'), { status: 404 })
   }
 
-  if (!['PENDING', 'CONFIRMED'].includes(order.status)) {
+  if (['DELIVERED', 'CANCELLED'].includes(order.status)) {
     throw Object.assign(
       new Error(`Pedido não pode ser entregue com status "${order.status}".`),
       { status: 422 }
     )
   }
 
-  if (!signature || !signature.startsWith('data:image/')) {
-    throw Object.assign(new Error('Assinatura inválida.'), { status: 400 })
+  if (!order.signature) {
+    throw Object.assign(
+      new Error('Pedido não pode ser entregue sem a assinatura do cliente.'),
+      { status: 400 }
+    )
   }
+
+  const data = {
+    status:      'DELIVERED',
+    deliveredAt: new Date(),
+  }
+
+  if (deliveredById) data.deliveredById = Number(deliveredById)
+  if (signature && signature.startsWith('data:image/')) data.signature = signature
 
   return prisma.order.update({
     where: { id: Number(id) },
-    data: {
-      status:        'DELIVERED',
-      signature,
-      deliveredAt:   new Date(),
-      deliveredById: deliveredById ? Number(deliveredById) : null,
-    },
+    data,
     include: INCLUDE_FULL,
   })
 }
@@ -210,6 +229,29 @@ const loadOrder = async (id) => {
   })
 }
 
+/* ── Sign (cliente assina sem mudar status) ── */
+const signOrder = async (id, { signature }) => {
+  const order = await prisma.order.findUnique({ where: { id: Number(id) } })
+
+  if (!order) {
+    throw Object.assign(new Error('Pedido não encontrado.'), { status: 404 })
+  }
+
+  if (order.status === 'CANCELLED') {
+    throw Object.assign(new Error('Pedidos cancelados não podem ser assinados.'), { status: 400 })
+  }
+
+  if (!signature || !signature.startsWith('data:image/')) {
+    throw Object.assign(new Error('Assinatura inválida.'), { status: 400 })
+  }
+
+  return prisma.order.update({
+    where: { id: Number(id) },
+    data:  { signature },
+    include: INCLUDE_FULL,
+  })
+}
+
 module.exports = {
   createOrder,
   listOrders,
@@ -220,4 +262,5 @@ module.exports = {
   separateOrder,
   packOrder,
   loadOrder,
+  signOrder,
 }

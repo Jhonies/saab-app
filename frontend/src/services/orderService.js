@@ -13,6 +13,8 @@ export const confirmOrder  = (id) => api.patch(`/orders/${id}/status`, { status:
 export const separateOrder = (id) => api.patch(`/orders/${id}/separate`).then(r => r.data)
 export const packOrder     = (id, weightKg) => api.patch(`/orders/${id}/pack`, { weightKg }).then(r => r.data)
 export const loadOrder     = (id) => api.patch(`/orders/${id}/load`).then(r => r.data)
+export const deliverOrder  = (id) => api.patch(`/orders/${id}/deliver`, {}).then(r => r.data)
+export const signOrder     = (id, signature) => api.patch(`/orders/${id}/sign`, { signature }).then(r => r.data)
 
 export const openInvoice = (orderId) => {
   const token   = localStorage.getItem('token')

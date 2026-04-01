@@ -9,7 +9,13 @@
       "Bash(grep -r \"EUR\\\\|€\\\\|euro\" /c/Users/vlope/Desktop/Project/saab-app/project/backend/src /c/Users/vlope/Desktop/Project/saab-app/project/backend/prisma --include=*.js --include=*.ts --include=*.json)",
       "Bash(grep -r \"pricePerBox\\\\|preço\\\\|Preço\" /c/Users/vlope/Desktop/Project/saab-app/project/backend/src --include=*.js --include=*.ts)",
       "Bash(grep -r \"currency\\\\|Currency\\\\|USD\\\\|BRL\\\\|dólar\" /c/Users/vlope/Desktop/Project/saab-app/project --include=*.js --include=*.jsx --include=*.ts --include=*.tsx)",
-      "Bash(grep -r \"Orlando\\\\|Florida\" /c/Users/vlope/Desktop/Project/saab-app/project --include=*.js --include=*.jsx --include=*.ts --include=*.tsx)"
+      "Bash(grep -r \"Orlando\\\\|Florida\" /c/Users/vlope/Desktop/Project/saab-app/project --include=*.js --include=*.jsx --include=*.ts --include=*.tsx)",
+      "Bash(netstat -ano)",
+      "Bash(tasklist:*)",
+      "Bash(wmic process:*)",
+      "Bash(powershell -Command \"Get-Process -Id 2644 | Select-Object Name,Path | Format-List\" 2>&1)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjQsImVtYWlsIjoiZnJpZ29yaWZpY28ubm9ydGVAc2FhYi5jb20iLCJyb2xlIjoiQ0xJRU5URSIsImlhdCI6MTc3NTAzMDA5MiwiZXhwIjoxNzc1MDU4ODkyfQ.Zx6Vhfk9N9wC9_MOPTCQXjgdfgjca701Rih8D5rAnyA\")",
+      "Bash(node -e \"const d=require\\(''''fs''''\\).readFileSync\\(''''/dev/stdin'''',''''utf8''''\\);const o=JSON.parse\\(d\\);console.log\\(o.length+'''' pedidos''''\\);o.slice\\(0,3\\).forEach\\(x=>console.log\\(''''#''''+x.id+'''' status=''''+x.status+'''' sig=''''+\\(x.signature?''''SIM'''':''''NAO''''\\)\\)\\)\")"
     ]
   }
 }

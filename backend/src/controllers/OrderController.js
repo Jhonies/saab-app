@@ -4,24 +4,51 @@ const InvoiceService = require('../services/InvoiceService')
 
 /* ── Create ── */
 const createOrder = async (req, res) => {
-  const { clientId, containerId, productId, quantity, weightKg } = req.body
+  const { clientId, items, containerId, productId, quantity, weightKg } = req.body
 
-  if (!clientId || !containerId || !productId || !quantity) {
-    return res.status(400).json({ message: 'Campos obrigatórios: clientId, containerId, productId, quantity.' })
+  if (!clientId) {
+    return res.status(400).json({ message: 'clientId é obrigatório.' })
   }
 
-  const qty = Number(quantity)
-  if (!Number.isInteger(qty) || qty <= 0) {
-    return res.status(400).json({ message: 'Quantidade deve ser um inteiro positivo.' })
-  }
+  // Suporta formato antigo (campo único) e novo (array de items)
+  let parsedItems
 
-  try {
-    const order = await OrderService.createOrder({
-      clientId:    Number(clientId),
+  if (Array.isArray(items) && items.length > 0) {
+    parsedItems = []
+    for (const item of items) {
+      if (!item.containerId || !item.productId || !item.quantity) {
+        return res.status(400).json({ message: 'Cada item deve ter containerId, productId e quantity.' })
+      }
+      const qty = Number(item.quantity)
+      if (!Number.isInteger(qty) || qty <= 0) {
+        return res.status(400).json({ message: 'Quantidade deve ser um inteiro positivo.' })
+      }
+      parsedItems.push({
+        containerId: Number(item.containerId),
+        productId:   Number(item.productId),
+        quantity:    qty,
+        weightKg:    item.weightKg != null ? Number(item.weightKg) : 0,
+      })
+    }
+  } else if (containerId && productId && quantity) {
+    const qty = Number(quantity)
+    if (!Number.isInteger(qty) || qty <= 0) {
+      return res.status(400).json({ message: 'Quantidade deve ser um inteiro positivo.' })
+    }
+    parsedItems = [{
       containerId: Number(containerId),
       productId:   Number(productId),
       quantity:    qty,
       weightKg:    weightKg != null ? Number(weightKg) : 0,
+    }]
+  } else {
+    return res.status(400).json({ message: 'Forneça items[] ou containerId/productId/quantity.' })
+  }
+
+  try {
+    const order = await OrderService.createOrder({
+      clientId: Number(clientId),
+      items:    parsedItems,
     })
     return res.status(201).json(order)
   } catch (err) {
@@ -117,10 +144,33 @@ const loadOrder = async (req, res) => {
   }
 }
 
+/* ── Sign (cliente assina) ── */
+const signOrder = async (req, res) => {
+  const { signature } = req.body
+  const order = await OrderService.getOrderById(req.params.id)
+
+  if (!order) return res.status(404).json({ message: 'Pedido não encontrado.' })
+
+  if (req.user.role === 'CLIENTE' && order.clientId !== req.user.sub) {
+    return res.status(403).json({ message: 'Acesso negado.' })
+  }
+
+  try {
+    const updated = await OrderService.signOrder(req.params.id, { signature })
+    return res.json(updated)
+  } catch (err) {
+    return res.status(err.status || 500).json({ message: err.message })
+  }
+}
+
 /* ── Invoice ── */
 const getInvoice = async (req, res) => {
   const order = await OrderService.getOrderById(req.params.id)
   if (!order) return res.status(404).json({ message: 'Pedido não encontrado.' })
+
+  if (order.status === 'PENDING') {
+    return res.status(400).json({ message: 'Fatura só pode ser gerada após confirmação do pedido.' })
+  }
 
   if (req.user.role === 'CLIENTE' && order.clientId !== req.user.sub) {
     return res.status(403).json({ message: 'Acesso negado.' })
@@ -144,4 +194,5 @@ module.exports = {
   separateOrder,
   packOrder,
   loadOrder,
+  signOrder,
 }

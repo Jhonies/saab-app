@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from 'react'
 import SignatureCanvas from 'react-signature-canvas'
+import { signOrder } from '../services/orderService'
 import styles from './SignatureModal.module.css'
 
 /* ── Icons ── */
@@ -46,16 +47,18 @@ const Spinner = () => (
   </svg>
 )
 
-/* ── SignatureModal ── */
+/**
+ * Modal de assinatura digital do cliente.
+ * O cliente assina para confirmar o pedido e gerar a fatura.
+ */
 const SignatureModal = ({ order, onClose, onDelivered }) => {
-  const sigRef     = useRef(null)
-  const [isEmpty,  setIsEmpty]  = useState(true)
+  const sigRef      = useRef(null)
+  const [hasSigned, setHasSigned] = useState(false)
   const [saving,   setSaving]   = useState(false)
   const [error,    setError]    = useState('')
-  const [delivered, setDelivered] = useState(false)
-  const [savedSig,  setSavedSig]  = useState('')
+  const [done,     setDone]     = useState(false)
+  const [savedSig, setSavedSig] = useState('')
 
-  // Fecha ao pressionar Escape
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', handler)
@@ -64,17 +67,17 @@ const SignatureModal = ({ order, onClose, onDelivered }) => {
 
   const handleClear = () => {
     sigRef.current?.clear()
-    setIsEmpty(true)
+    setHasSigned(false)
     setError('')
   }
 
   const handleEnd = () => {
-    setIsEmpty(sigRef.current?.isEmpty() ?? true)
+    setHasSigned(true)
   }
 
   const handleConfirm = async () => {
-    if (!sigRef.current || sigRef.current.isEmpty()) {
-      setError('Por favor, assine antes de confirmar a entrega.')
+    if (!sigRef.current || !hasSigned) {
+      setError('Por favor, assine antes de confirmar.')
       return
     }
 
@@ -83,29 +86,12 @@ const SignatureModal = ({ order, onClose, onDelivered }) => {
     setSaving(true)
     setError('')
     try {
-      const token   = localStorage.getItem('token')
-      const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
-
-      const res = await fetch(`${baseURL}/orders/${order.id}/deliver`, {
-        method:  'PATCH',
-        headers: {
-          'Content-Type':  'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ signature: base64 }),
-      })
-
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.message || 'Erro ao guardar assinatura.')
-      }
-
-      const updated = await res.json()
+      const updated = await signOrder(order.id, base64)
       setSavedSig(base64)
-      setDelivered(true)
+      setDone(true)
       onDelivered?.(updated)
     } catch (err) {
-      setError(err.message)
+      setError(err.response?.data?.message || err.message || 'Erro ao guardar assinatura.')
     } finally {
       setSaving(false)
     }
@@ -115,34 +101,39 @@ const SignatureModal = ({ order, onClose, onDelivered }) => {
     if (e.target === e.currentTarget && !saving) onClose()
   }
 
+  // Info do pedido para exibir no modal
+  const products = order.items
+    ?.map(i => `${i.product?.name} (${i.quantity} cxs)`)
+    .join(', ') ?? '—'
+
   return (
     <div className={styles.overlay} onClick={handleOverlayClick}>
       <div className={styles.modal}>
 
-        {/* Header */}
         <div className={styles.header}>
           <div className={styles.headerText}>
             <p className={styles.eyebrow}>Assinatura Digital</p>
-            <h2 className={styles.title}>Confirmação de Entrega</h2>
-            <p className={styles.orderRef}>Pedido #{order.id} · {order.client?.email}</p>
+            <h2 className={styles.title}>Confirmação de Pedido</h2>
+            <p className={styles.orderRef}>Pedido #{order.id}</p>
           </div>
           <button className={styles.closeBtn} onClick={onClose} disabled={saving}>
             <IconClose />
           </button>
         </div>
 
-        {/* Body */}
         <div className={styles.body}>
 
-          {delivered ? (
-            /* ── Estado de sucesso ── */
+          {done ? (
             <div className={styles.preview}>
               <span className={styles.successBadge}>
-                <IconCheck /> Entrega confirmada com sucesso
+                <IconCheck /> Pedido assinado com sucesso
               </span>
+              <p className={styles.previewHint}>
+                A fatura foi atualizada com a sua assinatura.
+              </p>
               <img
                 src={savedSig}
-                alt="Assinatura do cliente"
+                alt="Assinatura"
                 className={styles.previewImg}
               />
               <button className={styles.clearBtn} onClick={onClose}>
@@ -151,12 +142,23 @@ const SignatureModal = ({ order, onClose, onDelivered }) => {
             </div>
           ) : (
             <>
+              {/* Resumo do pedido */}
+              <div className={styles.orderSummary}>
+                <div className={styles.summaryRow}>
+                  <span>Produtos</span>
+                  <span>{products}</span>
+                </div>
+                <div className={styles.summaryRow}>
+                  <span>Total</span>
+                  <span>{order.totalBoxes} cxs · {Number(order.weightKg || 0).toFixed(1)} kg</span>
+                </div>
+              </div>
+
               <p className={styles.instruction}>
-                O cliente deve assinar abaixo para confirmar o recebimento da entrega.
+                Ao assinar, confirma que os dados do pedido estão corretos e autoriza a emissão da fatura.
               </p>
 
-              {/* Canvas */}
-              <div className={`${styles.canvasWrapper} ${!isEmpty ? styles.signed : ''}`}>
+              <div className={`${styles.canvasWrapper} ${hasSigned ? styles.signed : ''}`}>
                 <SignatureCanvas
                   ref={sigRef}
                   onEnd={handleEnd}
@@ -164,14 +166,14 @@ const SignatureModal = ({ order, onClose, onDelivered }) => {
                     className: styles.canvas,
                     'aria-label': 'Área de assinatura',
                   }}
-                  backgroundColor="rgb(248,248,248)"
-                  penColor="#1a1a1a"
+                  backgroundColor="#ffffff"
+                  penColor="#000000"
                   dotSize={2}
                   minWidth={1.5}
-                  maxWidth={3}
+                  maxWidth={3.5}
                   velocityFilterWeight={0.7}
                 />
-                <div className={`${styles.canvasPlaceholder} ${!isEmpty ? styles.hidden : ''}`}>
+                <div className={`${styles.canvasPlaceholder} ${hasSigned ? styles.hidden : ''}`}>
                   <IconPen />
                   <span>Assine aqui</span>
                 </div>
@@ -179,7 +181,6 @@ const SignatureModal = ({ order, onClose, onDelivered }) => {
 
               {error && <p className={styles.error}>{error}</p>}
 
-              {/* Actions */}
               <div className={styles.actions}>
                 <button className={styles.clearBtn} onClick={handleClear} disabled={saving}>
                   <IconTrash /> Limpar
@@ -187,9 +188,9 @@ const SignatureModal = ({ order, onClose, onDelivered }) => {
                 <button
                   className={styles.confirmBtn}
                   onClick={handleConfirm}
-                  disabled={isEmpty || saving}
+                  disabled={!hasSigned || saving}
                 >
-                  {saving ? <><Spinner /> A guardar…</> : <><IconCheck /> Confirmar Entrega</>}
+                  {saving ? <><Spinner /> A guardar…</> : <><IconCheck /> Confirmar Pedido</>}
                 </button>
               </div>
             </>

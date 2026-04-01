@@ -20,7 +20,7 @@ router.get('/containers/:id',   authorizeRoles('ADMIN', 'CLIENTE', 'EXPEDICAO'),
 router.patch('/containers/:id', authorizeRoles('ADMIN'),            updateContainer)
 
 /* ── Products ── */
-router.get('/products',         authorizeRoles('ADMIN', 'CLIENTE'), listProducts)
+router.get('/products',         authorizeRoles('ADMIN', 'CLIENTE', 'EXPEDICAO'), listProducts)
 router.post('/products',        authorizeRoles('ADMIN'),            createProduct)
 router.patch('/products/:id',   authorizeRoles('ADMIN'),            updateProduct)
 router.delete('/products/:id',  authorizeRoles('ADMIN'),            deleteProduct)
