@@ -116,7 +116,7 @@
 .mapOpenBtn {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #60a5fa;
+  color: var(--status-info);
   text-decoration: none;
   border: 1px solid var(--border-input);
   border-radius: 4px;
@@ -125,7 +125,7 @@
   transition: border-color 0.15s, color 0.15s;
 }
 
-.mapOpenBtn:hover { border-color: #1a6bb5; color: #93c5fd; }
+.mapOpenBtn:hover { border-color: var(--status-info); color: var(--status-info); }
 
 .mapFrame {
   width: 100%;
@@ -141,7 +141,7 @@
   gap: 1rem;
   background-color: var(--bg-surface);
   border: 1px solid var(--border-base);
-  border-left: 4px solid #1a6bb5;
+  border-left: 4px solid var(--status-info);
   border-radius: 6px;
   padding: 0.875rem 1.25rem;
   box-shadow: var(--shadow-card);
@@ -157,7 +157,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: #60a5fa;
+  color: var(--status-info);
 }
 
 .depotIcon svg { width: 1rem; height: 1rem; }
@@ -169,7 +169,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: #60a5fa;
+  color: var(--status-info);
   margin: 0 0 0.2rem;
 }
 
@@ -178,7 +178,7 @@
 .depotTime {
   font-size: 0.8125rem;
   font-weight: 700;
-  color: #60a5fa;
+  color: var(--status-info);
   white-space: nowrap;
 }
 
@@ -232,11 +232,11 @@
   justify-content: center;
   font-size: 0.8125rem;
   font-weight: 800;
-  color: #fff;
+  color: var(--text-on-red);
   transition: background-color 0.2s;
 }
 
-.stopBadge.done { background-color: #15803d; }
+.stopBadge.done { background-color: var(--status-ok); }
 
 .stopConnector {
   width: 2px;
@@ -299,7 +299,7 @@
   padding: 0.6rem 1rem;
   font-size: 0.8rem;
   font-weight: 700;
-  color: #60a5fa;
+  color: var(--status-info);
   cursor: pointer;
   text-decoration: none;
   white-space: nowrap;
@@ -310,8 +310,8 @@
 
 .navBtn:hover {
   background-color: var(--bg-hover);
-  border-color: #1a6bb5;
-  color: #93c5fd;
+  border-color: var(--status-info);
+  color: var(--status-info);
 }
 
 .navBtn svg { width: 1rem; height: 1rem; }
@@ -322,12 +322,12 @@
   align-items: center;
   gap: 0.5rem;
   background-color: var(--bg-input);
-  border: 1px solid #15803d;
+  border: 1px solid var(--status-ok);
   border-radius: 4px;
   padding: 0.6rem 1rem;
   font-size: 0.8rem;
   font-weight: 700;
-  color: #4ade80;
+  color: var(--status-ok);
   cursor: pointer;
   white-space: nowrap;
   transition: background-color 0.15s, border-color 0.15s, color 0.15s;
@@ -337,8 +337,8 @@
 
 .deliverBtn:hover {
   background-color: var(--bg-hover);
-  border-color: #22c55e;
-  color: #86efac;
+  border-color: var(--status-ok);
+  color: var(--status-ok);
 }
 
 .deliverBtn svg { width: 1rem; height: 1rem; }
@@ -350,7 +350,7 @@
   gap: 0.375rem;
   font-size: 0.8rem;
   font-weight: 700;
-  color: #4ade80;
+  color: var(--status-ok);
   padding: 0.6rem 0;
   flex-shrink: 0;
   align-self: flex-start;
@@ -375,10 +375,10 @@
   border-radius: 4px;
 }
 
-.tag.window  { background: var(--bg-input); color: #1a6bb5; }
-.tag.eta     { background: var(--bg-input); color: #b45309; }
-.tag.dist    { background: var(--bg-input); color: #15803d; }
-.tag.boxes   { background: var(--bg-input); color: #dc2626; }
+.tag.window  { background: var(--bg-input); color: var(--status-info); }
+.tag.eta     { background: var(--bg-input); color: var(--status-warn); }
+.tag.dist    { background: var(--bg-input); color: var(--status-ok); }
+.tag.boxes   { background: var(--bg-input); color: var(--status-error); }
 
 .tag svg { width: 0.75rem; height: 0.75rem; }
 
@@ -400,7 +400,7 @@
   font-size: 0.875rem;
 }
 
-.stateBox.error { color: #f87171; }
+.stateBox.error { color: var(--status-error); }
 
 /* Spinner */
 @keyframes spin { to { transform: rotate(360deg); } }

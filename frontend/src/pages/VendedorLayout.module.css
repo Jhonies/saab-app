@@ -1,0 +1,76 @@
+/* ─────────────────────────────────────────
+   VendedorLayout.module.css — SAAB
+───────────────────────────────────────── */
+
+.shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-page);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.25rem;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-base);
+  flex-shrink: 0;
+  gap: 1rem;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.brandLogo {
+  height: 2rem;
+  width: auto;
+  object-fit: contain;
+}
+
+.brandTitle {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.topbarRight {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.userEmail {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.logoutBtn {
+  background: none;
+  border: 1px solid var(--border-input);
+  border-radius: 4px;
+  padding: 0.4rem 0.875rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.logoutBtn:hover {
+  border-color: var(--text-secondary);
+  color: var(--text-primary);
+}
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+}

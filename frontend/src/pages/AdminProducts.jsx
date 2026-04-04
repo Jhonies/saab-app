@@ -25,7 +25,6 @@ const ProductModal = ({ initial, onClose, onSaved }) => {
 
   const [name,        setName]        = useState(initial?.name        ?? '')
   const [type,        setType]        = useState(initial?.type        ?? '')
-  const [pricePerBox, setPricePerBox] = useState(initial?.pricePerBox ?? '')
   const [active,      setActive]      = useState(initial?.active      ?? true)
   const [saving,      setSaving]      = useState(false)
   const [error,       setError]       = useState('')
@@ -41,9 +40,8 @@ const ProductModal = ({ initial, onClose, onSaved }) => {
     setError('')
 
     const data = {
-      name:        name.trim(),
-      type:        type.trim(),
-      pricePerBox: pricePerBox !== '' ? Number(pricePerBox) : 0,
+      name: name.trim(),
+      type: type.trim(),
       ...(isEdit && { active }),
     }
 
@@ -108,20 +106,6 @@ const ProductModal = ({ initial, onClose, onSaved }) => {
               <option value="Bebidas" />
               <option value="Outros" />
             </datalist>
-          </div>
-
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="price">Preço por Caixa ($)</label>
-            <input
-              id="price"
-              type="number"
-              min="0"
-              step="0.01"
-              className={styles.input}
-              value={pricePerBox}
-              onChange={e => setPricePerBox(e.target.value)}
-              placeholder="0.00"
-            />
           </div>
 
           {isEdit && (
@@ -243,7 +227,6 @@ const AdminProducts = () => {
           <span>ID</span>
           <span>Nome</span>
           <span>Categoria</span>
-          <span className={styles.right}>Preço / cx</span>
           <span>Estado</span>
           <span />
         </div>
@@ -258,9 +241,6 @@ const AdminProducts = () => {
               <span className={styles.productId}>#{product.id}</span>
               <span className={styles.productName}>{product.name}</span>
               <span className={styles.productType}>{product.type}</span>
-              <span className={`${styles.price} ${styles.right}`}>
-                $ {Number(product.pricePerBox).toFixed(2)}
-              </span>
               <span>
                 {product.active !== false
                   ? <span className={`${styles.badge} ${styles.badgeActive}`}>Activo</span>

@@ -10,6 +10,7 @@ const ROLE_REDIRECT = {
   EXPEDICAO: '/expedicao/dashboard',
   CLIENTE:   '/cliente/orders',
   MOTORISTA: '/motorista/routes',
+  VENDEDOR:  '/vendedor/orders',
 }
 
 const Login = () => {

@@ -125,7 +125,7 @@ const RouteModal = ({ order, onClose }) => {
           </div>
           <div className={styles.infoCell}>
             <p className={styles.infoLabel}>Total (caixas)</p>
-            <p className={styles.infoValue}>{order.totalBoxes}</p>
+            <p className={styles.infoValue}>{order.totalBoxes} {order.items?.some(i => i.container?.zone === 'OPEN_BOX') ? 'un' : 'cxs'}</p>
           </div>
           <div className={styles.infoCell}>
             <p className={styles.infoLabel}>Data</p>
@@ -144,8 +144,8 @@ const RouteModal = ({ order, onClose }) => {
 const OrderMobileCard = ({ order, geo, onMap, onInvoice, onConfirm, onCancel, onDeliver }) => {
   const status = order.status ?? 'PENDING'
   const email  = order.client?.email ?? '—'
-  const weight = order.weightKg && order.weightKg > 0
-    ? `${Number(order.weightKg).toFixed(1)} kg`
+  const weight = order.weightLb && order.weightLb > 0
+    ? `${Number(order.weightLb).toFixed(1)} lbs`
     : null
 
   return (
@@ -164,9 +164,6 @@ const OrderMobileCard = ({ order, geo, onMap, onInvoice, onConfirm, onCancel, on
         {weight && <span>{weight}</span>}
         <span>{new Date(order.createdAt).toLocaleDateString('pt-PT')}</span>
       </div>
-      {order.signature && (
-        <img src={order.signature} alt="Assinatura" className={styles.sigImg} />
-      )}
       <div className={styles.mobileActions}>
         <button className={styles.routeBtn} onClick={onMap}>
           <IconMap /> Rota
@@ -246,7 +243,6 @@ const Logistics = () => {
     <div className={styles.page}>
 
       <div className={styles.header}>
-        <p className={styles.eyebrow}>Módulo C</p>
         <h1 className={styles.title}>Logística</h1>
       </div>
 
@@ -297,29 +293,28 @@ const Logistics = () => {
                 <th>Cliente</th>
                 <th>Endereço</th>
                 <th>Total (cxs)</th>
-                <th>Peso (kg)</th>
+                <th>Peso (lbs)</th>
                 <th>Status</th>
                 <th>Data</th>
-                <th>Assinatura</th>
                 <th>Ações</th>
               </tr>
             </thead>
             <tbody>
               {loading && (
                 <tr className={styles.stateRow}>
-                  <td colSpan={9}>A carregar pedidos…</td>
+                  <td colSpan={8}>A carregar pedidos…</td>
                 </tr>
               )}
 
               {!loading && error && (
                 <tr className={`${styles.stateRow} ${styles.error}`}>
-                  <td colSpan={9}>{error}</td>
+                  <td colSpan={8}>{error}</td>
                 </tr>
               )}
 
               {!loading && !error && visible.length === 0 && (
                 <tr className={styles.stateRow}>
-                  <td colSpan={9}>
+                  <td colSpan={8}>
                     {orders.length === 0 ? 'Nenhum pedido registado.' : 'Nenhum pedido com este filtro.'}
                   </td>
                 </tr>
@@ -334,8 +329,8 @@ const Logistics = () => {
                   ? new Date(order.deliveredAt).toLocaleDateString('pt-PT')
                   : new Date(order.createdAt).toLocaleDateString('pt-PT')
 
-                const weightDisplay = order.weightKg && order.weightKg > 0
-                  ? `${Number(order.weightKg).toFixed(1)} kg`
+                const weightDisplay = order.weightLb && order.weightLb > 0
+                  ? `${Number(order.weightLb).toFixed(1)} lbs`
                   : '—'
 
                 return (
@@ -352,16 +347,6 @@ const Logistics = () => {
                       </span>
                     </td>
                     <td>{dateDisplay}</td>
-                    <td>
-                      {order.signature
-                        ? <img
-                            src={order.signature}
-                            alt="Assinatura"
-                            className={styles.sigImg}
-                          />
-                        : <span className={styles.sigEmpty}>—</span>
-                      }
-                    </td>
                     <td>
                       <div className={styles.actions}>
                         <button

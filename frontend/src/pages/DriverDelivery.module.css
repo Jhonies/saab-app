@@ -109,8 +109,8 @@
 }
 
 .mapsLink:hover {
-  border-color: #1a6bb5;
-  color: #4a9fd4;
+  border-color: var(--status-info);
+  color: var(--status-info);
 }
 
 .metaGrid {
@@ -261,8 +261,8 @@
 }
 
 .actionPanelGreen {
-  border-color: #15803d;
-  background-color: #0d1a0f;
+  border-color: var(--status-ok);
+  background-color: var(--status-ok-bg);
 }
 
 .actionHint {
@@ -281,7 +281,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #ffffff;
+  color: var(--text-on-red);
   cursor: pointer;
   width: fit-content;
   transition: background-color 0.18s;
@@ -304,15 +304,15 @@
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 50%;
-  background-color: #15803d;
-  color: #fff;
+  background-color: var(--status-ok);
+  color: var(--text-on-red);
   flex-shrink: 0;
 }
 
 .deliveredTitle {
   font-size: 1rem;
   font-weight: 700;
-  color: #15803d;
+  color: var(--status-ok);
   margin: 0 0 0.25rem;
 }
 
@@ -324,9 +324,9 @@
 
 .errorMsg {
   font-size: 0.8125rem;
-  color: #f87171;
-  background-color: #140a0a;
-  border: 1px solid #f8717133;
+  color: var(--status-error);
+  background-color: var(--status-error-bg);
+  border: 1px solid rgba(139, 0, 0, 0.25);
   border-radius: 4px;
   padding: 0.625rem 0.875rem;
   margin: 0;

@@ -53,13 +53,11 @@ const IconLogout = () => (
 const NAV_ITEMS = [
   { key: 'dashboard',  label: 'Dashboard',   Icon: IconDashboard,  path: '/expedicao/dashboard'  },
   { key: 'orders',     label: 'Pedidos',      Icon: IconOrders,     path: '/expedicao/orders'     },
-  { key: 'containers', label: 'Contêineres',  Icon: IconContainers, path: '/expedicao/containers' },
 ]
 
 const PAGE_TITLES = {
   dashboard:  'Dashboard',
   orders:     'Fila de Pedidos',
-  containers: 'Contêineres',
 }
 
 const ExpedicaoLayout = () => {
@@ -78,7 +76,6 @@ const ExpedicaoLayout = () => {
 
   const activeKey = (() => {
     if (location.pathname.startsWith('/expedicao/orders'))     return 'orders'
-    if (location.pathname.startsWith('/expedicao/containers')) return 'containers'
     return 'dashboard'
   })()
 
@@ -108,7 +105,7 @@ const ExpedicaoLayout = () => {
         <div className={styles.sidebarFooter}>
           <button className={styles.logoutBtn} onClick={handleLogout}>
             <IconLogout />
-            Terminar sessão
+            Sair
           </button>
         </div>
       </aside>

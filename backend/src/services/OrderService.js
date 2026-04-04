@@ -4,7 +4,13 @@ const prisma = new PrismaClient()
 
 const INCLUDE_FULL = {
   client: { select: { id: true, email: true } },
-  items:  { include: { product: true, container: true } },
+  items:  {
+    include: {
+      product:    true,
+      container:  true,
+      boxWeights: { orderBy: { boxNumber: 'asc' } },
+    }
+  },
 }
 
 /* ── Depot fallback (Orlando, FL) ── */
@@ -15,42 +21,49 @@ const createOrder = async ({ clientId, items }) => {
   return prisma.$transaction(async (tx) => {
     const itemsToCreate = []
     let totalBoxes = 0
-    let totalWeight = 0
 
     for (const item of items) {
-      const container = await tx.container.findUnique({ where: { id: item.containerId } })
+      // Buscar todos os containers com este produto, ordenados por label
+      const containers = await tx.container.findMany({
+        where: { productId: item.productId },
+        orderBy: { label: 'asc' },
+      })
 
-      if (!container) {
-        throw Object.assign(new Error(`Contêiner #${item.containerId} não encontrado.`), { status: 404 })
-      }
+      const totalAvailable = containers.reduce((s, c) => s + c.quantity, 0)
 
-      if (container.productId !== item.productId) {
+      if (totalAvailable < item.quantity) {
+        const productName = containers[0]?.product?.name ?? `#${item.productId}`
         throw Object.assign(
-          new Error(`Produto não corresponde ao contêiner ${container.label}.`),
-          { status: 400 }
-        )
-      }
-
-      if (container.quantity < item.quantity) {
-        throw Object.assign(
-          new Error(`Stock insuficiente em ${container.label}. Disponível: ${container.quantity} cxs. Solicitado: ${item.quantity} cxs.`),
+          new Error(`Stock insuficiente para produto ${productName}. Disponível: ${totalAvailable} cxs. Solicitado: ${item.quantity} cxs.`),
           { status: 422 }
         )
       }
 
-      await tx.container.update({
-        where: { id: item.containerId },
-        data:  { quantity: { decrement: item.quantity } },
-      })
+      // Distribuir caixas pelos containers na ordem
+      let remaining = item.quantity
+      for (const container of containers) {
+        if (remaining <= 0) break
+        const take = Math.min(remaining, container.quantity)
+        if (take <= 0) continue
+
+        await tx.container.update({
+          where: { id: container.id },
+          data:  { quantity: { decrement: take } },
+        })
+
+        itemsToCreate.push({
+          containerId: container.id,
+          productId:   item.productId,
+          quantity:    take,
+          priceType:   item.priceType || 'PER_LB',
+          pricePerLb:  item.pricePerLb ?? null,
+          pricePerBox: item.pricePerBox ?? null,
+        })
+
+        remaining -= take
+      }
 
       totalBoxes += item.quantity
-      totalWeight += item.weightKg || 0
-      itemsToCreate.push({
-        containerId: item.containerId,
-        productId:   item.productId,
-        quantity:    item.quantity,
-        weightKg:    item.weightKg || 0,
-      })
     }
 
     // Resolve endereço/coordenadas do cliente a partir do cadastro
@@ -68,7 +81,6 @@ const createOrder = async ({ clientId, items }) => {
         clientId,
         status:     'PENDING',
         totalBoxes,
-        weightKg:   totalWeight,
         address,
         lat,
         lon,
@@ -95,7 +107,7 @@ const getOrderById = (id) =>
   })
 
 /* ── Deliver ── */
-const deliverOrder = async (id, { signature, deliveredById } = {}) => {
+const deliverOrder = async (id, { deliveredById } = {}) => {
   const order = await prisma.order.findUnique({ where: { id: Number(id) } })
 
   if (!order) {
@@ -109,20 +121,12 @@ const deliverOrder = async (id, { signature, deliveredById } = {}) => {
     )
   }
 
-  if (!order.signature) {
-    throw Object.assign(
-      new Error('Pedido não pode ser entregue sem a assinatura do cliente.'),
-      { status: 400 }
-    )
-  }
-
   const data = {
     status:      'DELIVERED',
     deliveredAt: new Date(),
   }
 
   if (deliveredById) data.deliveredById = Number(deliveredById)
-  if (signature && signature.startsWith('data:image/')) data.signature = signature
 
   return prisma.order.update({
     where: { id: Number(id) },
@@ -202,8 +206,11 @@ const separateOrder = async (id, userId) => {
 }
 
 /* ── Pack (SEPARATING → READY) ── */
-const packOrder = async (id, userId) => {
-  const order = await prisma.order.findUnique({ where: { id: Number(id) } })
+const packOrder = async (id, userId, itemWeights) => {
+  const order = await prisma.order.findUnique({
+    where: { id: Number(id) },
+    include: { items: true },
+  })
 
   if (!order) {
     throw Object.assign(new Error('Pedido não encontrado.'), { status: 404 })
@@ -216,10 +223,51 @@ const packOrder = async (id, userId) => {
     )
   }
 
-  return prisma.order.update({
-    where:   { id: Number(id) },
-    data:    { status: 'READY', packedById: Number(userId), packedAt: new Date() },
-    include: INCLUDE_FULL,
+  return prisma.$transaction(async (tx) => {
+    let totalWeightLb = 0
+
+    if (Array.isArray(itemWeights)) {
+      for (const iw of itemWeights) {
+        // Apagar boxWeights existentes (permite re-submissão)
+        await tx.boxWeight.deleteMany({ where: { orderItemId: iw.orderItemId } })
+
+        // Criar boxWeights
+        if (Array.isArray(iw.boxWeights) && iw.boxWeights.length > 0) {
+          await tx.boxWeight.createMany({
+            data: iw.boxWeights.map(bw => ({
+              orderItemId: iw.orderItemId,
+              boxNumber:   bw.boxNumber,
+              weightLb:    bw.weightLb,
+            })),
+          })
+        }
+
+        // Calcular peso total do item
+        const itemWeightLb = (iw.boxWeights || []).reduce((s, bw) => s + (bw.weightLb || 0), 0)
+
+        await tx.orderItem.update({
+          where: { id: iw.orderItemId },
+          data:  { weightLb: itemWeightLb },
+        })
+
+        totalWeightLb += itemWeightLb
+      }
+    }
+
+    // Somar peso dos items que não foram enviados em itemWeights (PER_BOX sem boxWeights)
+    const updatedItems = await tx.orderItem.findMany({ where: { orderId: Number(id) } })
+    const finalWeightLb = updatedItems.reduce((s, i) => s + i.weightLb, 0)
+
+    return tx.order.update({
+      where: { id: Number(id) },
+      data:  {
+        status:     'READY',
+        packedById: Number(userId),
+        packedAt:   new Date(),
+        weightLb:   finalWeightLb,
+      },
+      include: INCLUDE_FULL,
+    })
   })
 }
 
@@ -245,29 +293,6 @@ const loadOrder = async (id) => {
   })
 }
 
-/* ── Sign (cliente assina sem mudar status) ── */
-const signOrder = async (id, { signature }) => {
-  const order = await prisma.order.findUnique({ where: { id: Number(id) } })
-
-  if (!order) {
-    throw Object.assign(new Error('Pedido não encontrado.'), { status: 404 })
-  }
-
-  if (order.status === 'CANCELLED') {
-    throw Object.assign(new Error('Pedidos cancelados não podem ser assinados.'), { status: 400 })
-  }
-
-  if (!signature || !signature.startsWith('data:image/')) {
-    throw Object.assign(new Error('Assinatura inválida.'), { status: 400 })
-  }
-
-  return prisma.order.update({
-    where: { id: Number(id) },
-    data:  { signature },
-    include: INCLUDE_FULL,
-  })
-}
-
 module.exports = {
   createOrder,
   listOrders,
@@ -278,5 +303,4 @@ module.exports = {
   separateOrder,
   packOrder,
   loadOrder,
-  signOrder,
 }

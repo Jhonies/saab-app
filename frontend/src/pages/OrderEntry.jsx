@@ -1,17 +1,18 @@
 import { useState, useEffect, useMemo } from 'react'
-import { fetchContainers } from '../services/inventoryService'
+import { fetchProducts, fetchProductStock } from '../services/inventoryService'
 import { fetchClients, createOrder } from '../services/orderService'
 import { useAuth } from '../context/AuthContext'
-import { ZONE_CONFIG } from '../constants/zones'
 import ClientPanel from '../components/Orders/ClientPanel'
 import styles from './OrderEntry.module.css'
 
 /* ── Helpers ── */
-const stockLevel = (qty) => {
-  if (qty === 0)   return 'danger'
-  if (qty <= 20)   return 'warning'
-  return 'ok'
-}
+const CATEGORIES = [
+  'Bovino', 'Suíno', 'Aves', 'Miúdos', 'Laticínios',
+  'Congelados', 'Secos', 'Bebidas', 'Outros',
+]
+
+const fmt = (n) =>
+  Number(n).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
 
 const Spinner = () => (
   <svg className={styles.spinner} fill="none" viewBox="0 0 24 24">
@@ -39,16 +40,21 @@ const OrderEntry = () => {
   const isClient     = user?.role === 'CLIENTE'
 
   const [clients,    setClients]    = useState([])
-  const [containers, setContainers] = useState([])
+  const [products,   setProducts]   = useState([])
   const [loading,    setLoading]    = useState(true)
 
-  const [clientId,    setClientId]    = useState('')
-  const [containerId, setContainerId] = useState('')
-  const [quantity,    setQuantity]    = useState('')
-  const [weightKg,    setWeightKg]    = useState('')
+  const [clientId,   setClientId]   = useState('')
+  const [productId,  setProductId]  = useState('')
+  const [quantity,   setQuantity]   = useState('')
+  const [priceType,  setPriceType]  = useState('PER_LB')
+  const [price,      setPrice]      = useState('')
 
-  // Carrinho de itens
-  const [cart, setCart] = useState([])
+  // Stock info for selected product
+  const [stock,      setStock]      = useState(null)
+  const [stockLoading, setStockLoading] = useState(false)
+
+  // Cart
+  const [cart,       setCart]       = useState([])
 
   const [submitting, setSubmitting] = useState(false)
   const [error,      setError]      = useState('')
@@ -57,49 +63,68 @@ const OrderEntry = () => {
   useEffect(() => {
     if (isClient) {
       setClientId(String(user.id))
-      fetchContainers()
-        .then(cts => setContainers(cts))
-        .catch(() => setError('Erro ao carregar dados. Verifique a ligação ao servidor.'))
+      fetchProducts()
+        .then(setProducts)
+        .catch(() => setError('Erro ao carregar dados.'))
         .finally(() => setLoading(false))
     } else {
-      Promise.all([fetchClients(), fetchContainers()])
-        .then(([cls, cts]) => { setClients(cls); setContainers(cts) })
-        .catch(() => setError('Erro ao carregar dados. Verifique a ligação ao servidor.'))
+      Promise.all([fetchClients(), fetchProducts()])
+        .then(([cls, prods]) => { setClients(cls); setProducts(prods) })
+        .catch(() => setError('Erro ao carregar dados.'))
         .finally(() => setLoading(false))
     }
   }, [isClient, user?.id])
 
-  // Contêineres com stock disponível, descontando itens já no carrinho
-  const availableContainers = useMemo(() => {
-    const cartQtyMap = {}
-    for (const item of cart) {
-      cartQtyMap[item.containerId] = (cartQtyMap[item.containerId] || 0) + item.quantity
-    }
-    return containers
-      .map(c => ({ ...c, effectiveQty: c.quantity - (cartQtyMap[c.id] || 0) }))
-      .filter(c => c.effectiveQty > 0 && c.product)
-  }, [containers, cart])
+  // Fetch stock when product changes
+  useEffect(() => {
+    if (!productId) { setStock(null); return }
+    setStockLoading(true)
+    fetchProductStock(productId)
+      .then(setStock)
+      .catch(() => setStock(null))
+      .finally(() => setStockLoading(false))
+  }, [productId])
 
-  const selectedContainer = useMemo(() => {
-    const c = containers.find(c => c.id === Number(containerId)) || null
-    if (!c) return null
+  // Available stock considering cart
+  const effectiveStock = useMemo(() => {
+    if (!stock) return 0
     const cartQty = cart
-      .filter(item => item.containerId === c.id)
-      .reduce((sum, item) => sum + item.quantity, 0)
-    return { ...c, effectiveQty: c.quantity - cartQty }
-  }, [containers, containerId, cart])
+      .filter(item => item.productId === Number(productId))
+      .reduce((s, item) => s + item.quantity, 0)
+    return stock.totalBoxes - cartQty
+  }, [stock, cart, productId])
 
-  const maxQty      = selectedContainer?.effectiveQty ?? 0
-  const productId   = selectedContainer?.productId ?? null
-  const qty         = Number(quantity)
-  const qtyValid    = Number.isInteger(qty) && qty > 0 && qty <= maxQty
-  const weightNum   = weightKg ? Number(weightKg) : 0
-  const canAdd      = containerId && qtyValid
+  const selectedProduct = useMemo(
+    () => products.find(p => p.id === Number(productId)) || null,
+    [products, productId]
+  )
 
-  // Totais do carrinho
+  // Group products by category
+  const productsByCategory = useMemo(() => {
+    const grouped = {}
+    for (const cat of CATEGORIES) {
+      const prods = products.filter(p => p.type === cat && p.active !== false)
+      if (prods.length > 0) grouped[cat] = prods
+    }
+    // 'Outros' catch-all
+    const knownTypes = new Set(CATEGORIES)
+    const other = products.filter(p => !knownTypes.has(p.type) && p.active !== false)
+    if (other.length > 0) {
+      grouped['Outros'] = [...(grouped['Outros'] || []), ...other]
+    }
+    return grouped
+  }, [products])
+
+  const qty       = Number(quantity)
+  const qtyValid  = Number.isInteger(qty) && qty > 0 && qty <= effectiveStock
+  const priceNum  = parseFloat(price)
+  const priceValid = !isNaN(priceNum) && priceNum > 0
+  const canAdd    = productId && qtyValid && priceValid
+
+  // Cart totals
   const cartTotals = useMemo(() => ({
-    boxes:  cart.reduce((s, i) => s + i.quantity, 0),
-    weight: cart.reduce((s, i) => s + i.weightKg, 0),
+    boxes: cart.reduce((s, i) => s + i.quantity, 0),
+    items: cart.length,
   }), [cart])
 
   const canSubmit = clientId && cart.length > 0 && !submitting
@@ -109,21 +134,21 @@ const OrderEntry = () => {
     setError('')
     setSuccess('')
 
-    const container = containers.find(c => c.id === Number(containerId))
+    const product = products.find(p => p.id === Number(productId))
     setCart(prev => [...prev, {
-      containerId: Number(containerId),
       productId:   Number(productId),
       quantity:    qty,
-      weightKg:    weightNum,
-      // dados para exibição
-      label:       container.label,
-      productName: container.product.name,
-      productType: container.product.type,
+      priceType,
+      pricePerLb:  priceType === 'PER_LB'  ? priceNum : null,
+      pricePerBox: priceType === 'PER_BOX' ? priceNum : null,
+      // Display data
+      productName: product.name,
+      productType: product.type,
     }])
 
-    setContainerId('')
+    setProductId('')
     setQuantity('')
-    setWeightKg('')
+    setPrice('')
   }
 
   const handleRemoveItem = (index) => {
@@ -134,37 +159,22 @@ const OrderEntry = () => {
     e.preventDefault()
     setError('')
     setSuccess('')
-
     if (!canSubmit) return
 
     setSubmitting(true)
     try {
       const order = await createOrder({
         clientId: Number(clientId),
-        items:    cart.map(({ containerId, productId, quantity, weightKg }) => ({
-          containerId, productId, quantity, weightKg,
+        items: cart.map(({ productId, quantity, priceType, pricePerLb, pricePerBox }) => ({
+          productId, quantity, priceType, pricePerLb, pricePerBox,
         })),
       })
 
       setSuccess(`Pedido #${order.id} criado com sucesso (${cart.length} ${cart.length === 1 ? 'item' : 'itens'}) — Status: PENDENTE`)
-
-      // Actualiza stock localmente
-      const cartQtyMap = {}
-      for (const item of cart) {
-        cartQtyMap[item.containerId] = (cartQtyMap[item.containerId] || 0) + item.quantity
-      }
-      setContainers(prev =>
-        prev.map(c =>
-          cartQtyMap[c.id]
-            ? { ...c, quantity: c.quantity - cartQtyMap[c.id] }
-            : c
-        )
-      )
-
       setCart([])
-      setContainerId('')
+      setProductId('')
       setQuantity('')
-      setWeightKg('')
+      setPrice('')
     } catch (err) {
       setError(err.response?.data?.message || 'Erro ao criar pedido.')
     } finally {
@@ -176,7 +186,6 @@ const OrderEntry = () => {
     <div className={styles.page}>
 
       <div className={styles.header}>
-        <p className={styles.eyebrow}>Módulo B</p>
         <h1 className={styles.title}>Novo Pedido</h1>
       </div>
 
@@ -188,17 +197,17 @@ const OrderEntry = () => {
 
           <div className={styles.formFields}>
 
-            {/* Cliente (só visível para ADMIN) */}
+            {/* Cliente (visível para ADMIN e VENDEDOR) */}
             {!isClient && (
               <div className={styles.field}>
-                <label className={styles.label}>Cliente</label>
+                <label className={styles.label}>Restaurante</label>
                 <select
                   className={styles.select}
                   value={clientId}
                   onChange={e => setClientId(e.target.value)}
                   disabled={loading}
                 >
-                  <option value="">Selecione um cliente…</option>
+                  <option value="">Selecione um restaurante…</option>
                   {clients.map(c => (
                     <option key={c.id} value={c.id}>{c.email}</option>
                   ))}
@@ -206,77 +215,89 @@ const OrderEntry = () => {
               </div>
             )}
 
-            {/* Contêiner / Produto */}
+            {/* Produto */}
             <div className={styles.field}>
-              <label className={styles.label}>Produto / Contêiner</label>
+              <label className={styles.label}>Produto</label>
               <select
                 className={styles.select}
-                value={containerId}
-                onChange={e => { setContainerId(e.target.value); setQuantity('') }}
+                value={productId}
+                onChange={e => { setProductId(e.target.value); setQuantity('') }}
                 disabled={loading}
               >
                 <option value="">Selecione um produto…</option>
-                {ZONE_CONFIG.map(zone => {
-                  const zoneContainers = availableContainers.filter(c => (c.zone || 'CONTAINERS') === zone.key)
-                  if (zoneContainers.length === 0) return null
-                  return (
-                    <optgroup key={zone.key} label={zone.label}>
-                      {zoneContainers.map(c => (
-                        <option key={c.id} value={c.id}>
-                          [{c.label}] {c.product.name} — {c.effectiveQty} cxs disponíveis
-                        </option>
-                      ))}
-                    </optgroup>
-                  )
-                })}
+                {Object.entries(productsByCategory).map(([cat, prods]) => (
+                  <optgroup key={cat} label={cat}>
+                    {prods.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
               </select>
 
-              {selectedContainer && (
-                <p className={`${styles.stockHint} ${styles[stockLevel(selectedContainer.effectiveQty)]}`}>
-                  Stock: {selectedContainer.effectiveQty} / {selectedContainer.capacity} cxs
-                  {selectedContainer.effectiveQty <= 20 && selectedContainer.effectiveQty > 0
-                    ? ' — Stock baixo'
-                    : ''}
+              {productId && !stockLoading && stock && (
+                <p className={`${styles.stockHint} ${effectiveStock === 0 ? styles.danger : effectiveStock <= 20 ? styles.warning : styles.ok}`}>
+                  Stock disponível: {effectiveStock} cxs
+                  {effectiveStock <= 20 && effectiveStock > 0 ? ' — Stock baixo' : ''}
                 </p>
+              )}
+              {stockLoading && (
+                <p className={styles.stockHint}>A verificar stock...</p>
               )}
             </div>
 
-            {/* Quantidade + Peso lado a lado */}
+            {/* Quantidade */}
+            <div className={styles.field}>
+              <label className={styles.label}>Quantidade (caixas)</label>
+              <input
+                className={styles.input}
+                type="number"
+                min="1"
+                max={effectiveStock || undefined}
+                step="1"
+                value={quantity}
+                onChange={e => setQuantity(e.target.value)}
+                placeholder={effectiveStock ? `Máx. ${effectiveStock}` : '—'}
+                disabled={!productId || loading}
+              />
+            </div>
+
+            {/* Tipo de preço + Preço */}
             <div className={styles.fieldRow}>
               <div className={styles.field}>
-                <label className={styles.label}>Quantidade (caixas)</label>
-                <input
-                  className={styles.input}
-                  type="number"
-                  min="1"
-                  max={maxQty || undefined}
-                  step="1"
-                  value={quantity}
-                  onChange={e => setQuantity(e.target.value)}
-                  placeholder={maxQty ? `Máx. ${maxQty}` : '—'}
-                  disabled={!containerId || loading}
-                />
+                <label className={styles.label}>Tipo de Preço</label>
+                <select
+                  className={styles.select}
+                  value={priceType}
+                  onChange={e => setPriceType(e.target.value)}
+                >
+                  <option value="PER_LB">Por Libra (lb)</option>
+                  <option value="PER_BOX">Por Caixa</option>
+                </select>
               </div>
               <div className={styles.field}>
-                <label className={styles.label}>Peso (kg) <span className={styles.optional}>opcional</span></label>
+                <label className={styles.label}>
+                  {priceType === 'PER_LB' ? 'Preço/lb ($)' : 'Preço/cx ($)'}
+                </label>
                 <input
                   className={styles.input}
                   type="number"
-                  min="0.1"
-                  step="0.1"
-                  value={weightKg}
-                  onChange={e => setWeightKg(e.target.value)}
-                  placeholder="Opcional"
+                  min="0.01"
+                  step="0.01"
+                  value={price}
+                  onChange={e => setPrice(e.target.value)}
+                  placeholder="0.00"
                   disabled={loading}
                 />
               </div>
             </div>
 
-            {quantity && !qtyValid && containerId && (
+            {quantity && !qtyValid && productId && (
               <p className={`${styles.banner} ${styles.error}`}>
                 {qty <= 0
                   ? 'A quantidade deve ser maior que zero.'
-                  : `Stock insuficiente. Máximo disponível: ${maxQty} cxs.`}
+                  : `Stock insuficiente. Máximo disponível: ${effectiveStock} cxs.`}
               </p>
             )}
 
@@ -290,7 +311,7 @@ const OrderEntry = () => {
             </button>
           </div>
 
-          {/* ── Carrinho ── */}
+          {/* ── Cart ── */}
           {cart.length > 0 && (
             <div className={styles.cartSection}>
               <p className={styles.cardTitle}>
@@ -302,7 +323,9 @@ const OrderEntry = () => {
                     <div className={styles.cartItemInfo}>
                       <span className={styles.cartItemName}>{item.productName}</span>
                       <span className={styles.cartItemMeta}>
-                        [{item.label}] · {item.quantity} cxs{item.weightKg > 0 ? ` · ${item.weightKg.toFixed(1)} kg` : ''}
+                        {item.quantity} cxs · {item.priceType === 'PER_LB'
+                          ? `${fmt(item.pricePerLb)}/lb`
+                          : `${fmt(item.pricePerBox)}/cx`}
                       </span>
                     </div>
                     <button
@@ -338,7 +361,7 @@ const OrderEntry = () => {
           <p className={styles.cardTitle}>Resumo</p>
 
           <div className={styles.summaryRow}>
-            <span>Cliente</span>
+            <span>Restaurante</span>
             <span>
               {isClient
                 ? user.email
@@ -363,11 +386,6 @@ const OrderEntry = () => {
           <div className={styles.summaryTotal}>
             <span>Total caixas</span>
             <span>{cartTotals.boxes > 0 ? `${cartTotals.boxes} cxs` : '—'}</span>
-          </div>
-
-          <div className={styles.summaryTotal}>
-            <span>Peso total</span>
-            <span>{cartTotals.weight > 0 ? `${cartTotals.weight.toFixed(1)} kg` : '—'}</span>
           </div>
         </div>
 

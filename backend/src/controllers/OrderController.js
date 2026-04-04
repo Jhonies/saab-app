@@ -4,45 +4,32 @@ const InvoiceService = require('../services/InvoiceService')
 
 /* ── Create ── */
 const createOrder = async (req, res) => {
-  const { clientId, items, containerId, productId, quantity, weightKg } = req.body
+  const { clientId, items } = req.body
 
   if (!clientId) {
     return res.status(400).json({ message: 'clientId é obrigatório.' })
   }
 
-  // Suporta formato antigo (campo único) e novo (array de items)
-  let parsedItems
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ message: 'items[] é obrigatório e não pode ser vazio.' })
+  }
 
-  if (Array.isArray(items) && items.length > 0) {
-    parsedItems = []
-    for (const item of items) {
-      if (!item.containerId || !item.productId || !item.quantity) {
-        return res.status(400).json({ message: 'Cada item deve ter containerId, productId e quantity.' })
-      }
-      const qty = Number(item.quantity)
-      if (!Number.isInteger(qty) || qty <= 0) {
-        return res.status(400).json({ message: 'Quantidade deve ser um inteiro positivo.' })
-      }
-      parsedItems.push({
-        containerId: Number(item.containerId),
-        productId:   Number(item.productId),
-        quantity:    qty,
-        weightKg:    item.weightKg != null ? Number(item.weightKg) : 0,
-      })
+  const parsedItems = []
+  for (const item of items) {
+    if (!item.productId || !item.quantity) {
+      return res.status(400).json({ message: 'Cada item deve ter productId e quantity.' })
     }
-  } else if (containerId && productId && quantity) {
-    const qty = Number(quantity)
+    const qty = Number(item.quantity)
     if (!Number.isInteger(qty) || qty <= 0) {
       return res.status(400).json({ message: 'Quantidade deve ser um inteiro positivo.' })
     }
-    parsedItems = [{
-      containerId: Number(containerId),
-      productId:   Number(productId),
+    parsedItems.push({
+      productId:   Number(item.productId),
       quantity:    qty,
-      weightKg:    weightKg != null ? Number(weightKg) : 0,
-    }]
-  } else {
-    return res.status(400).json({ message: 'Forneça items[] ou containerId/productId/quantity.' })
+      priceType:   item.priceType || 'PER_LB',
+      pricePerLb:  item.pricePerLb != null ? Number(item.pricePerLb) : null,
+      pricePerBox: item.pricePerBox != null ? Number(item.pricePerBox) : null,
+    })
   }
 
   try {
@@ -82,11 +69,8 @@ const listClients = async (_req, res) => {
 
 /* ── Deliver ── */
 const deliverOrder = async (req, res) => {
-  const { signature } = req.body
-
   try {
     const order = await OrderService.deliverOrder(req.params.id, {
-      signature,
       deliveredById: req.user.sub,
     })
     return res.json(order)
@@ -126,8 +110,9 @@ const separateOrder = async (req, res) => {
 
 /* ── Pack (SEPARATING → READY) ── */
 const packOrder = async (req, res) => {
+  const { itemWeights } = req.body
   try {
-    const order = await OrderService.packOrder(req.params.id, req.user.sub)
+    const order = await OrderService.packOrder(req.params.id, req.user.sub, itemWeights)
     return res.json(order)
   } catch (err) {
     return res.status(err.status || 500).json({ message: err.message })
@@ -139,25 +124,6 @@ const loadOrder = async (req, res) => {
   try {
     const order = await OrderService.loadOrder(req.params.id)
     return res.json(order)
-  } catch (err) {
-    return res.status(err.status || 500).json({ message: err.message })
-  }
-}
-
-/* ── Sign (cliente assina) ── */
-const signOrder = async (req, res) => {
-  const { signature } = req.body
-  const order = await OrderService.getOrderById(req.params.id)
-
-  if (!order) return res.status(404).json({ message: 'Pedido não encontrado.' })
-
-  if (req.user.role === 'CLIENTE' && order.clientId !== req.user.sub) {
-    return res.status(403).json({ message: 'Acesso negado.' })
-  }
-
-  try {
-    const updated = await OrderService.signOrder(req.params.id, { signature })
-    return res.json(updated)
   } catch (err) {
     return res.status(err.status || 500).json({ message: err.message })
   }
@@ -194,5 +160,4 @@ module.exports = {
   separateOrder,
   packOrder,
   loadOrder,
-  signOrder,
 }

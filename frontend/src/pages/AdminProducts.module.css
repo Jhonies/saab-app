@@ -58,12 +58,12 @@
 .filterBtn.filterActive {
   background-color: var(--red-base);
   border-color: var(--red-base);
-  color: #fff;
+  color: var(--text-on-red);
 }
 
 .filterBtn.filterActive .filterCount {
   background-color: rgba(255,255,255,0.2);
-  color: #fff;
+  color: var(--text-on-red);
 }
 
 .filterCount {
@@ -186,9 +186,9 @@
 }
 
 .badgeActive {
-  color: #15803d;
-  border-color: #15803d;
-  background-color: #15803d18;
+  color: var(--status-ok);
+  border-color: var(--status-ok);
+  background-color: var(--status-ok-bg);
 }
 
 .badgeInactive {
@@ -237,7 +237,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #fff;
+  color: var(--text-on-red);
   cursor: pointer;
   transition: background-color 0.18s;
 }
@@ -391,14 +391,14 @@
   border-left: 1px solid var(--border-input);
 }
 
-.toggleActive  { background-color: #15803d; color: #fff; }
-.toggleInactive { background-color: #3d0000; color: #f87171; }
+.toggleActive  { background-color: var(--status-ok); color: var(--text-on-red); }
+.toggleInactive { background-color: var(--red-light); color: var(--status-error); }
 
 .errorMsg {
   font-size: 0.8125rem;
-  color: #f87171;
-  background-color: #140a0a;
-  border: 1px solid #f8717133;
+  color: var(--status-error);
+  background-color: var(--status-error-bg);
+  border: 1px solid rgba(139, 0, 0, 0.25);
   border-radius: 4px;
   padding: 0.625rem 0.875rem;
   margin: 0;

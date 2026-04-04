@@ -17,14 +17,14 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.22em;
-  color: #8b0000;
+  color: var(--red-base);
   margin: 0;
 }
 
 .title {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #f0f0f0;
+  color: var(--text-primary);
   margin: 0;
 }
 
@@ -44,8 +44,8 @@
 
 /* ── Card base ── */
 .card {
-  background-color: #1e1e1e;
-  border: 1px solid #2a2a2a;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-base);
   border-radius: 6px;
   padding: 1.5rem;
 }
@@ -55,7 +55,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.15em;
-  color: #555;
+  color: var(--text-muted);
   margin: 0 0 1.25rem;
 }
 
@@ -91,24 +91,24 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: #888;
+  color: var(--text-secondary);
 }
 
 .optional {
   font-weight: 400;
   text-transform: none;
   letter-spacing: normal;
-  color: #555;
+  color: var(--text-muted);
 }
 
 .select,
 .input {
-  background-color: #2a2a2a;
-  border: 1px solid #3a3a3a;
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   padding: 0.7rem 0.875rem;
   font-size: 0.875rem;
-  color: #f0f0f0;
+  color: var(--text-primary);
   outline: none;
   width: 100%;
   transition: border-color 0.18s, box-shadow 0.18s;
@@ -117,13 +117,13 @@
 
 .select:focus,
 .input:focus {
-  border-color: #8b0000;
+  border-color: var(--red-base);
   box-shadow: 0 0 0 3px rgba(139, 0, 0, 0.2);
 }
 
-.select option { background-color: #2a2a2a; }
+.select option { background-color: var(--bg-surface); }
 
-.input::placeholder { color: #505050; }
+.input::placeholder { color: var(--text-muted); }
 
 .input:disabled,
 .select:disabled {
@@ -137,13 +137,13 @@
   margin: 0;
   padding: 0.4rem 0.625rem;
   border-radius: 4px;
-  background-color: #252525;
-  border: 1px solid #2e2e2e;
+  background-color: var(--bg-hover);
+  border: 1px solid var(--border-base);
 }
 
-.stockHint.ok      { color: #4ade80; }
-.stockHint.warning { color: #fbbf24; }
-.stockHint.danger  { color: #f87171; }
+.stockHint.ok      { color: var(--status-ok); }
+.stockHint.warning { color: var(--status-warn); }
+.stockHint.danger  { color: var(--status-error); }
 
 /* ── Error / Success banners ── */
 .banner {
@@ -155,36 +155,36 @@
 }
 
 .banner.error {
-  background-color: #1f0a0a;
+  background-color: var(--status-error-bg);
   border: 1px solid rgba(139, 0, 0, 0.45);
-  color: #f87171;
+  color: var(--status-error);
 }
 
 .banner.success {
-  background-color: #0a1f0a;
+  background-color: var(--status-ok-bg);
   border: 1px solid rgba(74, 222, 128, 0.35);
-  color: #4ade80;
+  color: var(--status-ok);
 }
 
 /* ── Add item button ── */
 .addBtn {
   width: 100%;
   background: none;
-  border: 2px dashed #3a3a3a;
+  border: 2px dashed var(--border-input);
   border-radius: 4px;
   padding: 0.75rem 1rem;
   font-size: 0.8125rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #888;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: border-color 0.18s, color 0.18s;
 }
 
 .addBtn:hover:not(:disabled) {
-  border-color: #8b0000;
-  color: #f0f0f0;
+  border-color: var(--red-base);
+  color: var(--text-primary);
 }
 
 .addBtn:disabled { opacity: 0.3; cursor: not-allowed; }
@@ -193,7 +193,7 @@
 .cartSection {
   margin-top: 1.25rem;
   padding-top: 1.25rem;
-  border-top: 1px solid #2a2a2a;
+  border-top: 1px solid var(--border-base);
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -210,8 +210,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  background-color: #252525;
-  border: 1px solid #2e2e2e;
+  background-color: var(--bg-hover);
+  border: 1px solid var(--border-base);
   border-radius: 4px;
   padding: 0.625rem 0.875rem;
 }
@@ -226,7 +226,7 @@
 .cartItemName {
   font-size: 0.8125rem;
   font-weight: 600;
-  color: #f0f0f0;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -234,13 +234,13 @@
 
 .cartItemMeta {
   font-size: 0.6875rem;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .cartRemoveBtn {
   background: none;
   border: none;
-  color: #555;
+  color: var(--text-muted);
   cursor: pointer;
   padding: 0.35rem;
   border-radius: 4px;
@@ -250,8 +250,8 @@
 }
 
 .cartRemoveBtn:hover {
-  color: #f87171;
-  background-color: #1f0a0a;
+  color: var(--status-error);
+  background-color: var(--status-error-bg);
 }
 
 /* ── Summary item label ── */
@@ -267,7 +267,7 @@
 .submitBtn {
   margin-top: 0.5rem;
   width: 100%;
-  background-color: #8b0000;
+  background-color: var(--red-base);
   border: none;
   border-radius: 4px;
   padding: 0.8125rem 1rem;
@@ -275,7 +275,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #fff;
+  color: var(--text-on-red);
   cursor: pointer;
   transition: background-color 0.18s;
   display: flex;
@@ -284,8 +284,8 @@
   gap: 0.5rem;
 }
 
-.submitBtn:hover:not(:disabled) { background-color: #720000; }
-.submitBtn:active:not(:disabled){ background-color: #5a0000; }
+.submitBtn:hover:not(:disabled) { background-color: var(--red-hover); }
+.submitBtn:active:not(:disabled){ background-color: var(--red-active); }
 .submitBtn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* ── Spinner ── */
@@ -312,31 +312,31 @@
   justify-content: space-between;
   align-items: baseline;
   padding: 0.5rem 0;
-  border-bottom: 1px solid #252525;
+  border-bottom: 1px solid var(--border-base);
   font-size: 0.8125rem;
-  color: #888;
+  color: var(--text-secondary);
 }
 
 .summaryRow:last-child { border-bottom: none; }
 
 .summaryRow span:last-child {
-  color: #f0f0f0;
+  color: var(--text-primary);
   font-weight: 600;
 }
 
 .summaryTotal {
   margin-top: 1rem;
   padding-top: 1rem;
-  border-top: 1px solid #333;
+  border-top: 1px solid var(--border-base);
   display: flex;
   justify-content: space-between;
   align-items: baseline;
   font-size: 0.875rem;
   font-weight: 700;
-  color: #f0f0f0;
+  color: var(--text-primary);
 }
 
 .summaryTotal span:last-child {
   font-size: 1.125rem;
-  color: #f0f0f0;
+  color: var(--text-primary);
 }

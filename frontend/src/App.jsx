@@ -9,7 +9,6 @@ import Inventory      from './pages/Inventory'
 import OrderEntry     from './pages/OrderEntry'
 import Logistics      from './pages/Logistics'
 import AdminUsers     from './pages/AdminUsers'
-import AdminProducts  from './pages/AdminProducts'
 import DriverRoutes    from './pages/DriverRoutes'
 import DriverDelivery  from './pages/DriverDelivery'
 import MotoristaLayout from './pages/MotoristaLayout'
@@ -19,6 +18,8 @@ import ExpedicaoLayout      from './pages/ExpedicaoLayout'
 import ExpedicaoDashboard   from './pages/ExpedicaoDashboard'
 import ExpedicaoOrders      from './pages/ExpedicaoOrders'
 import ExpedicaoPickingList from './pages/ExpedicaoPickingList'
+import VendedorLayout from './pages/VendedorLayout'
+import VendedorOrders from './pages/VendedorOrders'
 
 const App = () => {
   return (
@@ -41,15 +42,14 @@ const App = () => {
               </ProtectedRoute>
             }
           >
-            <Route index                element={<Navigate to="dashboard" replace />} />
+            <Route index                element={<Navigate to="inventory" replace />} />
             <Route path="dashboard"     element={<AdminHome />} />
             <Route path="inventory"     element={<Inventory />} />
-            <Route path="products"      element={<AdminProducts />} />
             <Route path="orders/new"    element={<OrderEntry />} />
             <Route path="logistics"     element={<Logistics />} />
             <Route path="routes"        element={<DriverRoutes />} />
             <Route path="users"         element={<AdminUsers />} />
-            <Route path="*"             element={<Navigate to="dashboard" replace />} />
+            <Route path="*"             element={<Navigate to="inventory" replace />} />
           </Route>
 
           {/* CLIENTE */}
@@ -97,6 +97,21 @@ const App = () => {
             <Route path="routes"            element={<DriverRoutes />} />
             <Route path="delivery/:id"      element={<DriverDelivery />} />
             <Route path="*"                 element={<Navigate to="routes" replace />} />
+          </Route>
+
+          {/* VENDEDOR */}
+          <Route
+            path="/vendedor"
+            element={
+              <ProtectedRoute allowedRoles={['VENDEDOR']}>
+                <VendedorLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index             element={<Navigate to="orders" replace />} />
+            <Route path="orders"     element={<VendedorOrders />} />
+            <Route path="orders/new" element={<OrderEntry />} />
+            <Route path="*"          element={<Navigate to="orders" replace />} />
           </Route>
 
           {/* Fallback */}

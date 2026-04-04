@@ -233,7 +233,6 @@ const DriverRoutes = () => {
 
       <div className={styles.header}>
         <div className={styles.headerLeft}>
-          <p className={styles.eyebrow}>Módulo D</p>
           <h1 className={styles.title}>Rota de Entrega — {new Date().toLocaleDateString('pt-PT')}</h1>
         </div>
         <button className={styles.refreshBtn} onClick={load} disabled={loading}>

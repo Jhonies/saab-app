@@ -125,7 +125,7 @@
 
 .errorMsg {
   font-size: 0.8125rem;
-  color: #f87171;
+  color: var(--status-error);
   margin: 0;
 }
 
@@ -159,7 +159,7 @@
   padding: 0.6rem 1.5rem;
   font-size: 0.8125rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-on-red);
   cursor: pointer;
   text-transform: uppercase;
   letter-spacing: 0.05em;

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { fetchOrderById, loadOrder } from '../services/orderService'
-import SignatureModal from '../components/SignatureModal'
+import { fetchOrderById, loadOrder, deliverOrder } from '../services/orderService'
 import styles from './DriverDelivery.module.css'
 
 const STATUS_CONFIG = {
@@ -44,7 +43,6 @@ const DriverDelivery = () => {
   const [loading,     setLoading]     = useState(true)
   const [acting,      setActing]      = useState(false)
   const [error,       setError]       = useState('')
-  const [showSig,     setShowSig]     = useState(false)
 
   const load = () => {
     setLoading(true)
@@ -69,6 +67,19 @@ const DriverDelivery = () => {
     }
   }
 
+  const handleDeliver = async () => {
+    setActing(true)
+    setError('')
+    try {
+      const updated = await deliverOrder(id)
+      setOrder(updated)
+    } catch (err) {
+      setError(err?.response?.data?.message ?? 'Erro ao confirmar entrega.')
+    } finally {
+      setActing(false)
+    }
+  }
+
   if (loading) return <div className={styles.state}>A carregar...</div>
   if (error && !order) return <div className={styles.state}>{error}</div>
 
@@ -77,7 +88,7 @@ const DriverDelivery = () => {
     ? `https://www.google.com/maps/dir/?api=1&destination=${order.lat},${order.lon}&travelmode=driving`
     : null
 
-  const totalWeight = order.items?.reduce((s, i) => s + (i.weightKg ?? 0), 0) ?? order.weightKg ?? 0
+  const totalWeight = order.items?.reduce((s, i) => s + (i.weightLb ?? 0), 0) ?? order.weightLb ?? 0
 
   return (
     <div className={styles.page}>
@@ -145,7 +156,7 @@ const DriverDelivery = () => {
               <div className={styles.itemNums}>
                 <span className={styles.itemQty}>{item.quantity} cx</span>
                 <span className={styles.itemWeight}>
-                  {item.weightKg > 0 ? `${item.weightKg} kg` : '—'}
+                  {item.weightLb > 0 ? `${item.weightLb} lbs` : '—'}
                 </span>
               </div>
             </div>
@@ -156,7 +167,7 @@ const DriverDelivery = () => {
             <div className={styles.totalsNums}>
               <span className={styles.totalsValue}>{order.totalBoxes} cx</span>
               <span className={styles.totalsValue}>
-                {totalWeight > 0 ? `${totalWeight} kg` : '—'}
+                {totalWeight > 0 ? `${totalWeight} lbs` : '—'}
               </span>
             </div>
           </div>
@@ -186,13 +197,14 @@ const DriverDelivery = () => {
         {order.status === 'IN_TRANSIT' && (
           <div className={styles.actionPanel}>
             <p className={styles.actionHint}>
-              Pede ao cliente que assine para confirmar o recebimento da entrega.
+              Confirma a entrega ao cliente.
             </p>
             <button
               className={styles.btnPrimary}
-              onClick={() => setShowSig(true)}
+              disabled={acting}
+              onClick={handleDeliver}
             >
-              Registar Entrega
+              {acting ? 'A processar...' : 'Confirmar Entrega'}
             </button>
           </div>
         )}
@@ -225,17 +237,6 @@ const DriverDelivery = () => {
         )}
 
       </div>
-
-      {showSig && (
-        <SignatureModal
-          order={order}
-          onClose={() => setShowSig(false)}
-          onDelivered={(updated) => {
-            setOrder(updated)
-            setShowSig(false)
-          }}
-        />
-      )}
 
     </div>
   )

@@ -8,7 +8,7 @@ import {
 import styles from './ProductPanel.module.css'
 
 const TYPES    = ['Bovino', 'Suíno', 'Frango', 'Cordeiro', 'Outro']
-const EMPTY    = { name: '', type: 'Bovino', pricePerBox: '' }
+const EMPTY    = { name: '', type: 'Bovino' }
 
 /* ── ProductPanel ── */
 const ProductPanel = () => {
@@ -50,9 +50,8 @@ const ProductPanel = () => {
     setAdding(true)
     try {
       await createProduct({
-        name:        form.name.trim(),
-        type:        form.type,
-        pricePerBox: form.pricePerBox === '' ? 0 : Number(form.pricePerBox),
+        name: form.name.trim(),
+        type: form.type,
       })
       setForm(EMPTY)
       load()
@@ -66,7 +65,7 @@ const ProductPanel = () => {
   /* ── Edit ── */
   const startEdit = (p) => {
     setEditId(p.id)
-    setEditForm({ name: p.name, type: p.type, pricePerBox: p.pricePerBox })
+    setEditForm({ name: p.name, type: p.type })
     setEditError('')
     setDeleteError('')
   }
@@ -83,9 +82,8 @@ const ProductPanel = () => {
     setSaving(true)
     try {
       await updateProduct(editId, {
-        name:        editForm.name.trim(),
-        type:        editForm.type,
-        pricePerBox: Number(editForm.pricePerBox),
+        name: editForm.name.trim(),
+        type: editForm.type,
       })
       cancelEdit()
       load()
@@ -114,7 +112,6 @@ const ProductPanel = () => {
       {/* Toggle header */}
       <button className={styles.toggle} onClick={() => setOpen(o => !o)}>
         <span className={styles.toggleLeft}>
-          <span className={styles.eyebrow}>Módulo A</span>
           <span className={styles.toggleTitle}>Gestão de Produtos</span>
         </span>
         <span className={`${styles.chevron} ${open ? styles.chevronOpen : ''}`}>▾</span>
@@ -140,15 +137,6 @@ const ProductPanel = () => {
               >
                 {TYPES.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
-              <input
-                className={styles.input}
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="Preço / cx ($)"
-                value={form.pricePerBox}
-                onChange={e => setForm(f => ({ ...f, pricePerBox: e.target.value }))}
-              />
               <button className={styles.addBtn} type="submit" disabled={adding}>
                 {adding ? 'A adicionar…' : '+ Adicionar'}
               </button>
@@ -175,7 +163,6 @@ const ProductPanel = () => {
                   <tr>
                     <th>Nome</th>
                     <th>Tipo</th>
-                    <th>Preço / Cx</th>
                     <th>Ações</th>
                   </tr>
                 </thead>
@@ -200,16 +187,6 @@ const ProductPanel = () => {
                           >
                             {TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                           </select>
-                        </td>
-                        <td>
-                          <input
-                            className={styles.input}
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={editForm.pricePerBox}
-                            onChange={e => setEditForm(f => ({ ...f, pricePerBox: e.target.value }))}
-                          />
                         </td>
                         <td className={styles.actions}>
                           <button
@@ -239,9 +216,6 @@ const ProductPanel = () => {
                         <td className={styles.cellName}>{p.name}</td>
                         <td>
                           <span className={styles.typeBadge}>{p.type}</span>
-                        </td>
-                        <td className={styles.cellPrice}>
-                          $ {p.pricePerBox.toFixed(2)}
                         </td>
                         <td className={styles.actions}>
                           <button

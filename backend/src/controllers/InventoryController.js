@@ -15,7 +15,7 @@ const getContainer = async (req, res) => {
 }
 
 const updateContainer = async (req, res) => {
-  const { capacity, quantity, productId } = req.body
+  const { capacity, quantity, productId, unit } = req.body
 
   if (capacity !== undefined && (isNaN(capacity) || capacity < 0 || capacity > 9999)) {
     return res.status(400).json({ message: 'Capacidade inválida (0–9999).' })
@@ -27,8 +27,9 @@ const updateContainer = async (req, res) => {
 
   const container = await InventoryService.updateContainer(req.params.id, {
     ...(capacity  !== undefined && { capacity: Number(capacity) }),
-    ...(quantity   !== undefined && { quantity: Number(quantity) }),
-    ...(productId  !== undefined && { productId: productId ? Number(productId) : null }),
+    ...(quantity  !== undefined && { quantity: Number(quantity) }),
+    ...(unit      !== undefined && { unit: String(unit) }),
+    ...(productId !== undefined && { productId: productId ? Number(productId) : null }),
   })
   return res.json(container)
 }
@@ -41,33 +42,36 @@ const listProducts = async (req, res) => {
   return res.json(products)
 }
 
+const getProductStock = async (req, res) => {
+  const stock = await InventoryService.getProductStock(req.params.id)
+  return res.json(stock)
+}
+
 const createProduct = async (req, res) => {
-  const { name, type, pricePerBox } = req.body
+  const { name, type } = req.body
 
   if (!name?.trim() || !type?.trim()) {
     return res.status(400).json({ message: 'Nome e tipo são obrigatórios.' })
   }
 
   const product = await InventoryService.createProduct({
-    name:        name.trim(),
-    type:        type.trim(),
-    pricePerBox: pricePerBox != null ? Number(pricePerBox) : 0,
+    name: name.trim(),
+    type: type.trim(),
   })
   return res.status(201).json(product)
 }
 
 const updateProduct = async (req, res) => {
-  const { name, type, pricePerBox, active } = req.body
+  const { name, type, active } = req.body
 
   if (name !== undefined && !name.trim()) {
     return res.status(400).json({ message: 'Nome não pode ser vazio.' })
   }
 
   const product = await InventoryService.updateProduct(req.params.id, {
-    ...(name        !== undefined && { name: name.trim() }),
-    ...(type        !== undefined && { type: type.trim() }),
-    ...(pricePerBox !== undefined && { pricePerBox: Number(pricePerBox) }),
-    ...(active      !== undefined && { active: Boolean(active) }),
+    ...(name   !== undefined && { name: name.trim() }),
+    ...(type   !== undefined && { type: type.trim() }),
+    ...(active !== undefined && { active: Boolean(active) }),
   })
   return res.json(product)
 }
@@ -89,6 +93,7 @@ module.exports = {
   getContainer,
   updateContainer,
   listProducts,
+  getProductStock,
   createProduct,
   updateProduct,
   deleteProduct,

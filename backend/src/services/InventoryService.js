@@ -7,7 +7,7 @@ const prisma = new PrismaClient()
 const getAllContainers = ({ zone } = {}) =>
   prisma.container.findMany({
     where:   zone ? { zone } : undefined,
-    orderBy: [{ zone: 'asc' }, { subZone: 'asc' }, { label: 'asc' }],
+    orderBy: [{ zone: 'asc' }, { label: 'asc' }],
     include: { product: true },
   })
 
@@ -32,8 +32,17 @@ const getAllProducts = ({ includeInactive = false } = {}) =>
     orderBy: [{ type: 'asc' }, { name: 'asc' }],
   })
 
-const createProduct = ({ name, type, pricePerBox }) =>
-  prisma.product.create({ data: { name, type, pricePerBox, active: true } })
+const getProductStock = async (productId) => {
+  const containers = await prisma.container.findMany({
+    where: { productId: Number(productId) },
+    select: { id: true, label: true, zone: true, quantity: true, capacity: true }
+  })
+  const total = containers.reduce((s, c) => s + c.quantity, 0)
+  return { productId: Number(productId), totalBoxes: total, containers }
+}
+
+const createProduct = ({ name, type }) =>
+  prisma.product.create({ data: { name, type, active: true } })
 
 const updateProduct = (id, data) =>
   prisma.product.update({ where: { id: Number(id) }, data })
@@ -69,6 +78,7 @@ module.exports = {
   getContainerById,
   updateContainer,
   getAllProducts,
+  getProductStock,
   createProduct,
   updateProduct,
   deleteProduct,

@@ -23,7 +23,7 @@ const fmtDate = (d) =>
 
 /**
  * Gera o PDF da fatura e escreve no stream passado.
- * @param {object} order  — order completo com items e client
+ * @param {object} order  — order completo com items, client e boxWeights
  * @param {Stream} stream — writable stream (res)
  */
 const generateInvoice = (order, stream) => {
@@ -77,14 +77,14 @@ const generateInvoice = (order, stream) => {
   doc.rect(col2, infoY, W - col2 - PL, 90)
      .fillAndStroke('#ffffff', COLOR.border)
 
-  const totalWeight = order.weightKg
-    ?? order.items?.reduce((s, i) => s + (i.weightKg || 0), 0)
+  const totalWeight = order.weightLb
+    ?? order.items?.reduce((s, i) => s + (i.weightLb || 0), 0)
     ?? 0
 
   const infoRight = [
     ['DATA DE EMISSÃO', fmtDate(order.createdAt)],
     ['TOTAL (CAIXAS)',  `${order.totalBoxes} cxs`],
-    ['PESO TOTAL',      `${Number(totalWeight).toFixed(1)} kg`],
+    ['PESO TOTAL',      `${Number(totalWeight).toFixed(1)} lbs`],
   ]
 
   infoRight.forEach(([label, value], i) => {
@@ -95,15 +95,15 @@ const generateInvoice = (order, stream) => {
 
   /* ── TABLE ── */
   const tableTop = infoY + 106
-  const rowH     = 32
+  const rowH     = 26
 
-  // 6 columns — compressed to fit Peso (kg)
+  // 6 columns
   const cols = {
-    desc:  { x: PL,       w: 170 },
-    type:  { x: PL + 175, w: 70  },
-    qty:   { x: PL + 250, w: 50  },
-    peso:  { x: PL + 305, w: 55  },
-    price: { x: PL + 365, w: 70  },
+    desc:  { x: PL,       w: 160 },
+    type:  { x: PL + 165, w: 60  },
+    qty:   { x: PL + 230, w: 55  },
+    peso:  { x: PL + 290, w: 65  },
+    price: { x: PL + 360, w: 75  },
     total: { x: PL + 440, w: W - PL * 2 - 440 },
   }
 
@@ -111,60 +111,120 @@ const generateInvoice = (order, stream) => {
   doc.rect(PL, tableTop, W - PL * 2, rowH).fill(COLOR.red)
 
   const headers = [
-    ['PRODUTO',    cols.desc],
-    ['TIPO',       cols.type],
-    ['QTD (CXS)', cols.qty],
-    ['PESO (KG)', cols.peso],
-    ['PREÇO/CX',  cols.price],
-    ['SUBTOTAL',   cols.total],
+    ['PRODUTO',     cols.desc],
+    ['TIPO',        cols.type],
+    ['QTD / CX Nº', cols.qty],
+    ['PESO (LBS)',  cols.peso],
+    ['PREÇO UNIT.', cols.price],
+    ['SUBTOTAL',    cols.total],
   ]
 
   headers.forEach(([label, col]) => {
-    doc.font('Helvetica-Bold').fontSize(7.5).fillColor(COLOR.white)
-       .text(label, col.x + 6, tableTop + 11, { width: col.w - 8 })
+    doc.font('Helvetica-Bold').fontSize(7).fillColor(COLOR.white)
+       .text(label, col.x + 4, tableTop + 8, { width: col.w - 6 })
   })
 
-  // Data rows
+  // Build data rows
   let y = tableTop + rowH
   const items = order.items ?? []
+  let grandTotal = 0
+  let rowIndex = 0
 
-  items.forEach((item, i) => {
-    const bg       = i % 2 === 0 ? '#ffffff' : '#f0f0f0'
-    const subtotal = item.quantity * (item.product?.pricePerBox ?? 0)
+  for (const item of items) {
+    if (item.priceType === 'PER_LB') {
+      // One row per box
+      const boxes = item.boxWeights ?? []
+      if (boxes.length > 0) {
+        for (const bw of boxes) {
+          const subtotal = bw.weightLb * (item.pricePerLb || 0)
+          grandTotal += subtotal
+          const bg = rowIndex % 2 === 0 ? '#ffffff' : '#f0f0f0'
+          doc.rect(PL, y, W - PL * 2, rowH).fill(bg)
 
-    doc.rect(PL, y, W - PL * 2, rowH).fill(bg)
+          const cells = [
+            [item.product?.name ?? '—',                      cols.desc],
+            [item.product?.type ?? '—',                      cols.type],
+            [`Cx ${bw.boxNumber}`,                           cols.qty],
+            [`${Number(bw.weightLb).toFixed(1)} lbs`,        cols.peso],
+            [`${fmt(item.pricePerLb || 0)}/lb`,              cols.price],
+            [fmt(subtotal),                                  cols.total],
+          ]
 
-    const cells = [
-      [item.product?.name ?? '—',                      cols.desc],
-      [item.product?.type ?? '—',                      cols.type],
-      [String(item.quantity),                           cols.qty],
-      [`${Number(item.weightKg || 0).toFixed(1)} kg`,  cols.peso],
-      [fmt(item.product?.pricePerBox ?? 0),             cols.price],
-      [fmt(subtotal),                                   cols.total],
-    ]
+          cells.forEach(([text, col]) => {
+            doc.font('Helvetica').fontSize(8).fillColor(COLOR.dark)
+               .text(text, col.x + 4, y + 8, { width: col.w - 6 })
+          })
 
-    cells.forEach(([text, col]) => {
-      doc.font('Helvetica').fontSize(9).fillColor(COLOR.dark)
-         .text(text, col.x + 6, y + 11, { width: col.w - 8 })
-    })
+          doc.moveTo(PL, y + rowH).lineTo(W - PL, y + rowH)
+             .strokeColor('#dddddd').lineWidth(0.5).stroke()
 
-    doc.moveTo(PL, y + rowH).lineTo(W - PL, y + rowH)
-       .strokeColor('#dddddd').lineWidth(0.5).stroke()
+          y += rowH
+          rowIndex++
+        }
+      } else {
+        // Fallback: no boxWeights yet
+        const subtotal = (item.weightLb || 0) * (item.pricePerLb || 0)
+        grandTotal += subtotal
+        const bg = rowIndex % 2 === 0 ? '#ffffff' : '#f0f0f0'
+        doc.rect(PL, y, W - PL * 2, rowH).fill(bg)
 
-    y += rowH
-  })
+        const cells = [
+          [item.product?.name ?? '—',                        cols.desc],
+          [item.product?.type ?? '—',                        cols.type],
+          [`${item.quantity} cxs`,                           cols.qty],
+          [item.weightLb > 0 ? `${Number(item.weightLb).toFixed(1)} lbs` : '—', cols.peso],
+          [`${fmt(item.pricePerLb || 0)}/lb`,                cols.price],
+          [fmt(subtotal),                                    cols.total],
+        ]
+
+        cells.forEach(([text, col]) => {
+          doc.font('Helvetica').fontSize(8).fillColor(COLOR.dark)
+             .text(text, col.x + 4, y + 8, { width: col.w - 6 })
+        })
+
+        doc.moveTo(PL, y + rowH).lineTo(W - PL, y + rowH)
+           .strokeColor('#dddddd').lineWidth(0.5).stroke()
+
+        y += rowH
+        rowIndex++
+      }
+    } else {
+      // PER_BOX — one row per item
+      const subtotal = item.quantity * (item.pricePerBox || 0)
+      grandTotal += subtotal
+      const bg = rowIndex % 2 === 0 ? '#ffffff' : '#f0f0f0'
+      doc.rect(PL, y, W - PL * 2, rowH).fill(bg)
+
+      const cells = [
+        [item.product?.name ?? '—',                        cols.desc],
+        [item.product?.type ?? '—',                        cols.type],
+        [`${item.quantity} cxs`,                           cols.qty],
+        ['—',                                              cols.peso],
+        [`${fmt(item.pricePerBox || 0)}/cx`,               cols.price],
+        [fmt(subtotal),                                    cols.total],
+      ]
+
+      cells.forEach(([text, col]) => {
+        doc.font('Helvetica').fontSize(8).fillColor(COLOR.dark)
+           .text(text, col.x + 4, y + 8, { width: col.w - 6 })
+      })
+
+      doc.moveTo(PL, y + rowH).lineTo(W - PL, y + rowH)
+         .strokeColor('#dddddd').lineWidth(0.5).stroke()
+
+      y += rowH
+      rowIndex++
+    }
+  }
 
   // Outer table border
-  doc.rect(PL, tableTop, W - PL * 2, rowH + items.length * rowH)
+  doc.rect(PL, tableTop, W - PL * 2, y - tableTop)
      .strokeColor(COLOR.border).lineWidth(0.8).stroke()
 
   /* ── TOTALS ── */
   const totalBoxY  = y + 16
   const totalW     = 220
   const totalX     = W - PL - totalW
-  const grandTotal = items.reduce(
-    (acc, item) => acc + item.quantity * (item.product?.pricePerBox ?? 0), 0
-  )
 
   doc.rect(totalX, totalBoxY, totalW, 44).fillAndStroke(COLOR.red, COLOR.red)
 
@@ -174,37 +234,6 @@ const generateInvoice = (order, stream) => {
   doc.font('Helvetica-Bold').fontSize(18).fillColor(COLOR.white)
      .text(fmt(grandTotal), totalX + 12, totalBoxY + 22, { width: totalW - 20, align: 'right' })
 
-  /* ── SIGNATURE ── */
-  const sigY = y + 80
-  if (order.signature && order.signature.startsWith('data:image/')) {
-    doc.font('Helvetica-Bold').fontSize(7).fillColor(COLOR.midGray)
-       .text('ASSINATURA DO CLIENTE', PL, sigY)
-
-    // Fundo branco + borda para a área da assinatura
-    const sigBoxX = PL
-    const sigBoxY = sigY + 14
-    const sigBoxW = 200
-    const sigBoxH = 70
-
-    doc.rect(sigBoxX, sigBoxY, sigBoxW, sigBoxH)
-       .fillAndStroke('#ffffff', '#dddddd')
-
-    try {
-      const base64Data = order.signature.replace(/^data:image\/\w+;base64,/, '')
-      const sigBuffer  = Buffer.from(base64Data, 'base64')
-      doc.image(sigBuffer, sigBoxX + 10, sigBoxY + 5, {
-        width:  sigBoxW - 20,
-        height: sigBoxH - 10,
-        fit:    [sigBoxW - 20, sigBoxH - 10],
-        align:  'center',
-        valign: 'center',
-      })
-    } catch (_) { /* ignora se a imagem for inválida */ }
-
-    doc.font('Helvetica').fontSize(7).fillColor(COLOR.midGray)
-       .text(order.client?.email ?? '', PL, sigBoxY + sigBoxH + 4)
-  }
-
   /* ── FOOTER ── */
   const footerY = H - 52
   doc.rect(0, footerY, W, 52).fill(COLOR.dark)
@@ -212,12 +241,8 @@ const generateInvoice = (order, stream) => {
   doc.moveTo(0, footerY).lineTo(W, footerY)
      .strokeColor(COLOR.red).lineWidth(2).stroke()
 
-  const footerText = order.signature
-    ? 'SAAB Logistics  ·  Orlando, FL  ·  Documento assinado digitalmente pelo cliente.'
-    : 'SAAB Logistics  ·  Orlando, FL  ·  Documento aguarda assinatura do cliente.'
-
   doc.font('Helvetica').fontSize(8).fillColor(COLOR.midGray)
-     .text(footerText, PL, footerY + 14, { width: W - PL * 2, align: 'center' })
+     .text('SAAB Logistics  ·  Orlando, FL', PL, footerY + 14, { width: W - PL * 2, align: 'center' })
 
   doc.end()
 }

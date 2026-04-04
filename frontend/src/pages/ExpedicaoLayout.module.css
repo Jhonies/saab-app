@@ -100,6 +100,7 @@
 .sidebarFooter {
   padding: 1rem 1.25rem;
   border-top: 1px solid var(--border-sidebar);
+  margin-top: auto;
 }
 
 .logoutBtn {
@@ -109,15 +110,17 @@
   width: 100%;
   background: none;
   border: none;
-  padding: 0.625rem 0;
+  padding: 0.625rem 0.75rem;
   font-size: 0.8125rem;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   cursor: pointer;
-  transition: color 0.15s;
+  transition: color 0.15s, background-color 0.15s;
+  border-radius: 4px;
 }
 
 .logoutBtn:hover {
-  color: #f87171;
+  color: var(--status-error);
+  background-color: var(--status-error-bg);
 }
 
 /* ══════════════════════════════════════

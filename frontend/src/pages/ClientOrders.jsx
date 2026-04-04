@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
-import { fetchMyOrders, openInvoice, signOrder } from '../services/orderService'
-import SignatureModal from '../components/SignatureModal'
+import { fetchMyOrders, openInvoice } from '../services/orderService'
 import styles from './ClientOrders.module.css'
 
 /* ── Status config ── */
@@ -36,23 +35,8 @@ const IconPdf = () => (
   </svg>
 )
 
-const IconSign = () => (
-  <svg fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round"
-      d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652
-         L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685
-         a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
-  </svg>
-)
-
-const IconCheck = () => (
-  <svg fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ width: '0.75rem', height: '0.75rem' }}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-  </svg>
-)
-
 /* ── OrderCard (mobile) ── */
-const OrderCard = ({ order, status, products, canSign, onSign }) => (
+const OrderCard = ({ order, status, products }) => (
   <div className={styles.orderCard}>
     <div className={styles.cardRow}>
       <span className={styles.orderId}>#{order.id}</span>
@@ -68,22 +52,10 @@ const OrderCard = ({ order, status, products, canSign, onSign }) => (
       </span>
       <span className={styles.cardMeta}>
         {order.totalBoxes} cxs
-        {order.weightKg ? ` · ${Number(order.weightKg).toFixed(1)} kg` : ''}
+        {order.weightLb ? ` · ${Number(order.weightLb).toFixed(1)} lbs` : ''}
       </span>
     </div>
-    <div className={styles.cardRow}>
-      {order.signature ? (
-        <span className={styles.signedBadge}><IconCheck /> Assinado</span>
-      ) : (
-        <span className={styles.invoiceNA}>Assinatura pendente</span>
-      )}
-    </div>
     <div className={styles.actionsRow}>
-      {canSign && (
-        <button className={styles.signBtn} onClick={onSign}>
-          <IconSign /> Assinar
-        </button>
-      )}
       {order.status !== 'PENDING' && order.status !== 'CANCELLED' && (
         <button className={styles.invoiceBtn} onClick={() => openInvoice(order.id)}>
           <IconPdf /> Fatura
@@ -98,7 +70,6 @@ const ClientOrders = () => {
   const [orders,    setOrders]    = useState([])
   const [loading,   setLoading]   = useState(true)
   const [error,     setError]     = useState('')
-  const [signModal, setSignModal] = useState(null)
 
   useEffect(() => {
     fetchMyOrders()
@@ -106,14 +77,6 @@ const ClientOrders = () => {
       .catch(() => setError('Erro ao carregar pedidos.'))
       .finally(() => setLoading(false))
   }, [])
-
-  const handleSigned = (updated) => {
-    setOrders(prev => prev.map(o => o.id === updated.id ? updated : o))
-    setSignModal(null)
-  }
-
-  const canSign = (order) =>
-    !order.signature && order.status !== 'PENDING' && order.status !== 'CANCELLED'
 
   const getProducts = (order) =>
     order.items
@@ -149,7 +112,6 @@ const ClientOrders = () => {
                   <th>Caixas</th>
                   <th>Peso</th>
                   <th>Status</th>
-                  <th>Assinatura</th>
                   <th>Ações</th>
                 </tr>
               </thead>
@@ -164,7 +126,7 @@ const ClientOrders = () => {
                       <td>{new Date(order.createdAt).toLocaleDateString('pt-PT')}</td>
                       <td>{products}</td>
                       <td>{order.totalBoxes}</td>
-                      <td>{order.weightKg ? `${Number(order.weightKg).toFixed(1)} kg` : '—'}</td>
+                      <td>{order.weightLb ? `${Number(order.weightLb).toFixed(1)} lbs` : '—'}</td>
                       <td>
                         <span className={`${styles.badge} ${styles[STATUS_MOD[status]]}`}>
                           <span className={styles.badgeDot} />
@@ -172,25 +134,7 @@ const ClientOrders = () => {
                         </span>
                       </td>
                       <td>
-                        {order.signature ? (
-                          <span className={styles.signedBadge}>
-                            <IconCheck /> Assinado
-                          </span>
-                        ) : (
-                          <span className={styles.invoiceNA}>Pendente</span>
-                        )}
-                      </td>
-                      <td>
                         <div className={styles.actionsRow}>
-                          {canSign(order) && (
-                            <button
-                              className={styles.signBtn}
-                              onClick={() => setSignModal(order)}
-                            >
-                              <IconSign />
-                              Assinar
-                            </button>
-                          )}
                           {order.status !== 'PENDING' && order.status !== 'CANCELLED' && (
                             <button
                               className={styles.invoiceBtn}
@@ -222,21 +166,10 @@ const ClientOrders = () => {
                 order={order}
                 status={status}
                 products={getProducts(order)}
-                canSign={canSign(order)}
-                onSign={() => setSignModal(order)}
               />
             )
           })}
         </div>
-      )}
-
-      {signModal && (
-        <SignatureModal
-          order={signModal}
-          onClose={() => setSignModal(null)}
-          onDelivered={handleSigned}
-          mode="sign"
-        />
       )}
 
     </div>

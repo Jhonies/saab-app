@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { updateContainer } from '../../services/inventoryService'
-import { ZONE_LABELS, SUBZONE_LABELS, expandLabel } from '../../constants/zones'
+import { ZONE_LABELS, expandLabel } from '../../constants/zones'
 import styles from './ContainerEditModal.module.css'
 
 const ContainerEditModal = ({ container, products, onClose, onSaved }) => {
@@ -8,6 +8,7 @@ const ContainerEditModal = ({ container, products, onClose, onSaved }) => {
     container.productId != null ? String(container.productId) : ''
   )
   const [quantity, setQuantity] = useState(container.quantity)
+  const [unit,     setUnit]     = useState(container.unit || 'caixas')
   const [saving,   setSaving]   = useState(false)
   const [error,    setError]    = useState('')
 
@@ -23,6 +24,7 @@ const ContainerEditModal = ({ container, products, onClose, onSaved }) => {
       const updated = await updateContainer(container.id, {
         capacity:  container.capacity,
         quantity:  Number(quantity),
+        unit:      unit,
         productId: productId === '' ? null : Number(productId),
       })
       onSaved(updated)
@@ -44,7 +46,7 @@ const ContainerEditModal = ({ container, products, onClose, onSaved }) => {
             <h2 className={styles.title}>{expandLabel(container.label)}</h2>
             <p className={styles.zoneBadge}>
               {ZONE_LABELS[container.zone] || container.zone}
-              {container.subZone ? ` / ${SUBZONE_LABELS[container.subZone]}` : ''}
+
             </p>
           </div>
           <button className={styles.closeBtn} onClick={onClose} aria-label="Fechar">✕</button>
@@ -71,14 +73,26 @@ const ContainerEditModal = ({ container, products, onClose, onSaved }) => {
 
           <div className={styles.field}>
             <label className={styles.label}>Quantidade</label>
-            <input
-              className={styles.input}
-              type="number"
-              min={0}
-              max={9999}
-              value={quantity}
-              onChange={handleQuantityChange}
-            />
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <input
+                className={styles.input}
+                type="number"
+                min={0}
+                max={9999}
+                value={quantity}
+                onChange={handleQuantityChange}
+                style={{ flex: 1 }}
+              />
+              <select
+                className={styles.select}
+                value={unit}
+                onChange={e => setUnit(e.target.value)}
+                style={{ flex: 1 }}
+              >
+                <option value="caixas">caixas</option>
+                <option value="unidades">unidades soltas</option>
+              </select>
+            </div>
           </div>
 
           {error && <p className={styles.errorMsg}>{error}</p>}

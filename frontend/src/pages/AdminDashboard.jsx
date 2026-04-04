@@ -17,6 +17,13 @@ const IconInventory = () => (
   </svg>
 )
 
+const IconHome = () => (
+  <svg className={styles.navIcon} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round"
+      d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+  </svg>
+)
+
 const IconOrders = () => (
   <svg className={styles.navIcon} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round"
@@ -80,22 +87,22 @@ const IconLogout = () => (
 )
 
 const NAV_ITEMS = [
-  { key: 'inventory', label: 'Estoque',       Icon: IconInventory, path: '/admin/inventory'  },
-  { key: 'products',  label: 'Produtos',      Icon: IconProducts,  path: '/admin/products'   },
-  { key: 'orders',    label: 'Pedidos',       Icon: IconOrders,    path: '/admin/orders/new' },
-  { key: 'logistics', label: 'Logística',     Icon: IconLogistics, path: '/admin/logistics'  },
-  { key: 'routes',    label: 'Rotas',         Icon: IconRoutes,    path: '/admin/routes'     },
-  { key: 'users',     label: 'Utilizadores',  Icon: IconUsers,     path: '/admin/users'      },
+  { key: 'dashboard', label: 'Painel',     Icon: IconHome,    path: '/admin/dashboard' },
+  { key: 'inventory', label: 'Estoque',   Icon: IconInventory, path: '/admin/inventory' },
+  { key: 'orders',    label: 'Pedidos',   Icon: IconOrders,    path: '/admin/orders/new' },
+  { key: 'logistics', label: 'Logística', Icon: IconLogistics, path: '/admin/logistics' },
+  { key: 'routes',    label: 'Rotas',     Icon: IconRoutes,    path: '/admin/routes' },
+  { key: 'users',     label: 'Utilizadores',  Icon: IconUsers,     path: '/admin/users' },
 ]
 
 const PAGE_TITLES = {
+  dashboard: 'Painel de Controlo',
   inventory: 'Estoque',
   products:  'Produtos',
   orders:    'Pedidos',
   logistics: 'Logística',
   routes:    'Rotas',
   users:     'Utilizadores',
-  dashboard: 'Dashboard',
 }
 
 const STATUS_CONFIG = {
@@ -126,9 +133,9 @@ export const AdminHome = () => {
     const today = orders.filter(o => isToday(o.createdAt))
     return {
       pedidosHoje:     today.length,
-      kgEntreguesHoje: orders
+      lbsEntreguesHoje: orders
         .filter(o => o.status === 'DELIVERED' && o.deliveredAt && isToday(o.deliveredAt))
-        .reduce((s, o) => s + (o.weightKg ?? 0), 0)
+        .reduce((s, o) => s + (o.weightLb ?? 0), 0)
         .toFixed(1),
       prontos:         orders.filter(o => o.status === 'READY').length,
       emSeparacao:     orders.filter(o => o.status === 'SEPARATING').length,
@@ -163,8 +170,8 @@ export const AdminHome = () => {
           <p className={styles.statValue}>{v(kpis.pedidosHoje)}</p>
         </div>
         <div className={styles.statCard}>
-          <p className={styles.statLabel}>Kg Entregues Hoje</p>
-          <p className={styles.statValue}>{v(kpis.kgEntreguesHoje)}</p>
+          <p className={styles.statLabel}>Lbs Entregues Hoje</p>
+          <p className={styles.statValue}>{v(kpis.lbsEntreguesHoje)}</p>
         </div>
         <div className={styles.statCard}>
           <p className={styles.statLabel}>Prontos para Carga</p>
@@ -245,13 +252,14 @@ const AdminDashboard = () => {
     : 'AD'
 
   const activeKey = (() => {
+    if (location.pathname.startsWith('/admin/dashboard')) return 'dashboard'
     if (location.pathname.startsWith('/admin/inventory')) return 'inventory'
     if (location.pathname.startsWith('/admin/orders'))    return 'orders'
     if (location.pathname.startsWith('/admin/logistics')) return 'logistics'
     if (location.pathname.startsWith('/admin/routes'))    return 'routes'
     if (location.pathname.startsWith('/admin/products'))  return 'products'
     if (location.pathname.startsWith('/admin/users'))     return 'users'
-    return 'dashboard'
+    return 'inventory'
   })()
 
   return (
@@ -278,10 +286,7 @@ const AdminDashboard = () => {
         </nav>
 
         <div className={styles.sidebarFooter}>
-          <button className={styles.logoutBtn} onClick={handleLogout}>
-            <IconLogout />
-            Terminar sessão
-          </button>
+          <span className={styles.sidebarUser}>{user?.email}</span>
         </div>
       </aside>
 
@@ -291,10 +296,12 @@ const AdminDashboard = () => {
         {/* Topbar */}
         <header className={styles.topbar}>
           <h2 className={styles.topbarTitle}>{PAGE_TITLES[activeKey]}</h2>
-          <div className={styles.topbarUser}>
+          <div className={styles.topbarRight}>
             <ThemeToggle />
-            <span>{user?.email}</span>
-            <div className={styles.topbarAvatar}>{initials}</div>
+            <span className={styles.userEmail}>{user?.email}</span>
+            <button className={styles.logoutBtn} onClick={handleLogout} title="Sair">
+              Sair
+            </button>
           </div>
         </header>
 

@@ -102,20 +102,14 @@
 
 /* ── Error ── */
 .error {
-  background-color: #fef2f2;
+  background-color: var(--status-error-bg);
   border: 1px solid rgba(220, 50, 50, 0.3);
   border-radius: 8px;
   padding: 0.75rem 1rem;
   font-size: 0.875rem;
-  color: #dc2626;
+  color: var(--status-error);
   line-height: 1.45;
   margin: 0;
-}
-
-[data-theme="dark"] .error {
-  background-color: #140a0a;
-  border-color: rgba(180, 50, 50, 0.5);
-  color: #f87171;
 }
 
 /* ── Button ── */
@@ -127,7 +121,7 @@
   padding: 0.9375rem 1rem;
   font-size: 1rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-on-red);
   letter-spacing: 0.03em;
   text-transform: uppercase;
   cursor: pointer;

@@ -15,5 +15,8 @@ export const createProduct = (data) =>
 export const updateProduct = (id, data) =>
   api.patch(`/inventory/products/${id}`, data).then(r => r.data)
 
+export const fetchProductStock = (id) =>
+  api.get(`/inventory/products/${id}/stock`).then(r => r.data)
+
 export const deleteProduct = (id) =>
   api.delete(`/inventory/products/${id}`)

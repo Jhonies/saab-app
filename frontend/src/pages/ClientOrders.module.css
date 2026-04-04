@@ -93,10 +93,10 @@
   white-space: nowrap;
 }
 
-.badge.pending   { background: #1f1200; color: #fbbf24; }
-.badge.confirmed { background: #0a1a2e; color: #60a5fa; }
-.badge.delivered { background: #0a1f0a; color: #4ade80; }
-.badge.cancelled { background: var(--bg-hover); color: var(--text-muted); }
+.badge.pending   { background: var(--status-warn-bg); color: var(--status-warn); }
+.badge.confirmed { background: var(--status-info-bg); color: var(--status-info); }
+.badge.delivered { background: var(--status-ok-bg); color: var(--status-ok); }
+.badge.cancelled { background: var(--status-error-bg); color: var(--status-error); }
 
 .badgeDot {
   width: 0.375rem;
@@ -123,8 +123,8 @@
 }
 
 .invoiceBtn:hover {
-  border-color: var(--red-base);
-  color: #f87171;
+  border-color: var(--status-error);
+  color: var(--status-error);
 }
 
 .invoiceBtn svg { width: 0.875rem; height: 0.875rem; }
@@ -168,7 +168,7 @@
   gap: 0.25rem;
   font-size: 0.6875rem;
   font-weight: 600;
-  color: #4ade80;
+  color: var(--status-ok);
 }
 
 /* ── Empty / Loading / Error ── */
@@ -182,7 +182,7 @@
   border-radius: 6px;
 }
 
-.errorState { color: #f87171; }
+.errorState { color: var(--status-error); }
 
 /* ── Mobile cards ── */
 .mobileCards {

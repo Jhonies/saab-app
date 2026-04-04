@@ -14,7 +14,7 @@
 .state {
   padding: 3rem 1.5rem;
   font-size: 0.875rem;
-  color: #505050;
+  color: var(--text-muted);
   text-align: center;
 }
 
@@ -27,21 +27,21 @@
   border: none;
   padding: 0;
   font-size: 0.8125rem;
-  color: #888;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: color 0.15s;
   width: fit-content;
 }
 
 .backBtn:hover {
-  color: #f0f0f0;
+  color: var(--text-primary);
 }
 
 /* ── Header ── */
 .header {
-  background-color: #1e1e1e;
-  border: 1px solid #333333;
-  border-left: 4px solid #8b0000;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-base);
+  border-left: 4px solid var(--red-base);
   border-radius: 6px;
   padding: 1.25rem 1.5rem;
   display: flex;
@@ -62,14 +62,14 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.25em;
-  color: #8b0000;
+  color: var(--red-base);
   margin: 0;
 }
 
 .orderNum {
   font-size: 1.75rem;
   font-weight: 700;
-  color: #f0f0f0;
+  color: var(--text-primary);
   margin: 0;
   line-height: 1;
   font-family: monospace;
@@ -106,13 +106,13 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: #505050;
+  color: var(--text-muted);
   min-width: 64px;
   flex-shrink: 0;
 }
 
 .metaValue {
-  color: #cccccc;
+  color: var(--text-secondary);
 }
 
 /* ── Section ── */
@@ -127,14 +127,14 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: #505050;
+  color: var(--text-muted);
   margin: 0;
 }
 
 /* ── Table ── */
 .tableWrap {
-  background-color: #1e1e1e;
-  border: 1px solid #333333;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-base);
   border-radius: 6px;
   overflow: hidden;
 }
@@ -148,8 +148,8 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: #505050;
-  border-bottom: 1px solid #2a2a2a;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-base);
   gap: 0.5rem;
 }
 
@@ -159,7 +159,7 @@
   align-items: center;
   padding: 0.875rem 1.25rem;
   gap: 0.5rem;
-  border-bottom: 1px solid #252525;
+  border-bottom: 1px solid var(--border-base);
   cursor: pointer;
   transition: background-color 0.12s;
 }
@@ -169,11 +169,11 @@
 }
 
 .tableRow:hover {
-  background-color: #252525;
+  background-color: var(--bg-hover);
 }
 
 .tableRow.rowChecked {
-  background-color: #0d1a0f;
+  background-color: var(--status-ok-bg);
   opacity: 0.85;
 }
 
@@ -187,42 +187,42 @@
   width: 1.25rem;
   height: 1.25rem;
   border-radius: 4px;
-  border: 2px solid #3a3a3a;
-  background-color: #2a2a2a;
+  border: 2px solid var(--border-input);
+  background-color: var(--bg-input);
   display: flex;
   align-items: center;
   justify-content: center;
   transition: border-color 0.15s, background-color 0.15s;
   flex-shrink: 0;
-  color: #fff;
+  color: var(--text-on-red);
 }
 
 .checkbox.checkboxOn {
-  border-color: #15803d;
-  background-color: #15803d;
+  border-color: var(--status-ok);
+  background-color: var(--status-ok);
 }
 
 .containerLabel {
   font-family: monospace;
   font-size: 0.875rem;
   font-weight: 700;
-  color: #888;
+  color: var(--text-secondary);
 }
 
 .productName {
   font-size: 0.875rem;
-  color: #f0f0f0;
+  color: var(--text-primary);
 }
 
 .productType {
   font-size: 0.75rem;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .num {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #f0f0f0;
+  color: var(--text-primary);
 }
 
 .right {
@@ -232,7 +232,7 @@
 .empty {
   padding: 2rem 1.25rem;
   font-size: 0.875rem;
-  color: #505050;
+  color: var(--text-muted);
   margin: 0;
 }
 
@@ -244,8 +244,8 @@
 }
 
 .actionPanel {
-  background-color: #1e1e1e;
-  border: 1px solid #333333;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-base);
   border-radius: 6px;
   padding: 1.25rem 1.5rem;
   display: flex;
@@ -254,13 +254,13 @@
 }
 
 .actionPanelGreen {
-  border-color: #15803d;
-  background-color: #0d1a0f;
+  border-color: var(--status-ok);
+  background-color: var(--status-ok-bg);
 }
 
 .actionHint {
   font-size: 0.8125rem;
-  color: #666;
+  color: var(--text-secondary);
   margin: 0;
   line-height: 1.5;
 }
@@ -268,7 +268,7 @@
 .actionReady {
   font-size: 0.9375rem;
   font-weight: 600;
-  color: #15803d;
+  color: var(--status-ok);
   margin: 0;
 }
 
@@ -284,33 +284,33 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: #888;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
 .weightInput {
-  background-color: #2a2a2a;
-  border: 1px solid #3a3a3a;
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   padding: 0.5rem 0.75rem;
   font-size: 0.9375rem;
-  color: #f0f0f0;
+  color: var(--text-primary);
   width: 140px;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .weightInput::placeholder {
-  color: #505050;
+  color: var(--text-muted);
 }
 
 .weightInput:focus {
   outline: none;
-  border-color: #8b0000;
+  border-color: var(--red-base);
   box-shadow: 0 0 0 3px rgba(139, 0, 0, 0.22);
 }
 
 .btnPrimary {
-  background-color: #8b0000;
+  background-color: var(--red-base);
   border: none;
   border-radius: 4px;
   padding: 0.625rem 1.5rem;
@@ -318,18 +318,18 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #ffffff;
+  color: var(--text-on-red);
   cursor: pointer;
   width: fit-content;
   transition: background-color 0.18s;
 }
 
 .btnPrimary:hover:not(:disabled) {
-  background-color: #720000;
+  background-color: var(--red-hover);
 }
 
 .btnPrimary:active:not(:disabled) {
-  background-color: #5a0000;
+  background-color: var(--red-active);
 }
 
 .btnPrimary:disabled {
@@ -339,21 +339,98 @@
 
 .hintWarn {
   font-size: 0.75rem;
-  color: #b45309;
+  color: var(--status-warn);
   margin: 0;
 }
 
 .errorMsg {
   font-size: 0.8125rem;
-  color: #f87171;
-  background-color: #140a0a;
-  border: 1px solid #f8717133;
+  color: var(--status-error);
+  background-color: var(--status-error-bg);
+  border: 1px solid rgba(139, 0, 0, 0.25);
   border-radius: 4px;
   padding: 0.625rem 0.875rem;
   margin: 0;
 }
 
-/* ── Responsive ── */
+/* ── Picking item card ���─ */
+.pickingItem {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-base);
+  border-radius: 6px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pickingHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.pickingQty {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-left: auto;
+}
+
+.boxWeightsGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-left: 0.5rem;
+}
+
+.boxWeightRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.boxLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 80px;
+}
+
+.boxValue {
+  font-size: 0.8125rem;
+  color: var(--text-primary);
+}
+
+.itemSubtotal {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-align: right;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--border-base);
+}
+
+.boxConfirmRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-left: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.confirmLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+/* ─�� Responsive ── */
 @media (max-width: 768px) {
   .tableHeader,
   .tableRow {

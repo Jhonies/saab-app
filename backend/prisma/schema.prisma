@@ -7,7 +7,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Valores válidos: "ADMIN" | "EXPEDICAO" | "MOTORISTA" | "CLIENTE"
+// Valores válidos: "ADMIN" | "EXPEDICAO" | "MOTORISTA" | "CLIENTE" | "VENDEDOR"
 model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique
@@ -22,37 +22,32 @@ model User {
 }
 
 model Product {
-  id          Int         @id @default(autoincrement())
-  name        String
-  type        String      // categoria livre: "Bovino", "Bebidas", "Acessórios", etc.
-  pricePerBox Float       @default(0) // price per box in USD
-  active      Boolean     @default(true)
-  createdAt   DateTime    @default(now())
-  containers  Container[]
-  orderItems  OrderItem[] @relation("OrderItemProduct")
+  id         Int         @id @default(autoincrement())
+  name       String
+  type       String      // categoria livre: "Bovino", "Bebidas", "Acessórios", etc.
+  active     Boolean     @default(true)
+  createdAt  DateTime    @default(now())
+  containers Container[]
+  orderItems OrderItem[] @relation("OrderItemProduct")
 }
 
 enum ContainerZone {
   CAMARA_FRIA
-  CAMARA_FRIA_FORA
-  CONTAINERS
-  SECOS
-  OPEN_BOX
-}
-
-enum SecosSubZone {
-  NASSIF
-  SAAB
+  CONTAINER_31
+  CONTAINER_32
+  CONTAINER_33
+  CONTAINER_36
   BEBIDAS
+  SECOS
 }
 
 model Container {
   id         Int              @id @default(autoincrement())
   label      String           @unique // ex: "CF-01", "SN-02"
-  zone       ContainerZone    @default(CONTAINERS)
-  subZone    SecosSubZone?
+  zone       ContainerZone    @default(SECOS)
   capacity   Int
   quantity   Int              @default(0)
+  unit       String           @default("caixas")
   productId  Int?
   product    Product?         @relation(fields: [productId], references: [id])
   orderItems OrderItem[]
@@ -73,9 +68,8 @@ model Order {
   lon                 Float?
   deliveryWindowStart String      @default("08:00") // "HH:MM"
   deliveryWindowEnd   String      @default("18:00") // "HH:MM"
-  // Peso e assinatura
-  weightKg            Float       @default(0)
-  signature           String?
+  // Peso
+  weightLb            Float       @default(0)
   deliveredAt         DateTime?
   deliveredById       Int?
   // Expedição
@@ -91,13 +85,25 @@ model Order {
 }
 
 model OrderItem {
-  id          Int       @id @default(autoincrement())
+  id          Int         @id @default(autoincrement())
   orderId     Int
-  order       Order     @relation(fields: [orderId], references: [id])
+  order       Order       @relation(fields: [orderId], references: [id])
   containerId Int
-  container   Container @relation(fields: [containerId], references: [id])
+  container   Container   @relation(fields: [containerId], references: [id])
   productId   Int
-  product     Product   @relation("OrderItemProduct", fields: [productId], references: [id])
+  product     Product     @relation("OrderItemProduct", fields: [productId], references: [id])
   quantity    Int
-  weightKg    Float     @default(0)
+  priceType   String      @default("PER_LB")  // "PER_LB" | "PER_BOX"
+  pricePerLb  Float?                           // preenchido pelo vendedor se PER_LB
+  pricePerBox Float?                           // preenchido pelo vendedor se PER_BOX
+  weightLb    Float       @default(0)          // soma das boxWeights (calculado ao embalar)
+  boxWeights  BoxWeight[]
+}
+
+model BoxWeight {
+  id          Int       @id @default(autoincrement())
+  orderItemId Int
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id])
+  boxNumber   Int
+  weightLb    Float
 }

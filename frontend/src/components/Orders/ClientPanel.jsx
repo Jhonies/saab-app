@@ -60,7 +60,6 @@ const ClientPanel = () => {
 
       <button className={styles.toggle} onClick={() => setOpen(o => !o)}>
         <span className={styles.toggleLeft}>
-          <span className={styles.eyebrow}>Módulo B</span>
           <span className={styles.toggleTitle}>Gestão de Utilizadores</span>
         </span>
         <span className={`${styles.chevron} ${open ? styles.chevronOpen : ''}`}>▾</span>

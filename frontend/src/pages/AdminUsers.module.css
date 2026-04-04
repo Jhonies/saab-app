@@ -143,7 +143,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #ffffff;
+  color: var(--text-on-red);
   cursor: pointer;
   transition: background-color 0.18s;
 }
@@ -290,9 +290,9 @@
 
 .errorMsg {
   font-size: 0.8125rem;
-  color: #f87171;
-  background-color: #140a0a;
-  border: 1px solid #f8717133;
+  color: var(--status-error);
+  background-color: var(--status-error-bg);
+  border: 1px solid rgba(139, 0, 0, 0.25);
   border-radius: 4px;
   padding: 0.625rem 0.875rem;
   margin: 0;
