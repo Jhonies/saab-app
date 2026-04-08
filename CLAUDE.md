@@ -57,7 +57,7 @@ project/
 │       ├── services/                  # Business logic — Prisma queries, cálculos
 │       │   ├── InventoryService.js
 │       │   ├── OrderService.js
-│       │   ├── InvoiceService.js      # PDF generation (pdfkit), currency USD
+│       │   ├── InvoiceService.js      # PDF generation (pdfkit), currency USD, custom fonts (Helvetica World + IBM Plex Sans), multi-page support
 │       │   ├── RouteService.js        # Haversine + nearest-neighbor, depot Orlando FL
 │       │   └── UserService.js
 │       └── routes/
@@ -206,7 +206,7 @@ BoxWeight    → id, orderItemId, boxNumber, weightLb (peso individual por caixa
 
 ### Location (Orlando, FL)
 
-- **Depot:** 28.5383, -81.3792 (Orlando, FL)
+- **Depot:** 28.4626, -81.3305 (6843 Conway Rd Ste 120, Orlando, FL 32812)
 - **Client addresses:** Dr Phillips Blvd, Conroy Rd (Orlando), Irlo Bronson Hwy (Kissimmee)
 
 ## Coding Standards
@@ -254,9 +254,27 @@ Tema industrial escuro, sóbrio e funcional. Alto contraste, vermelho como cor d
 - Buttons secondary: `bg transparent`, `border: 1px solid #3a3a3a`
 - Shadows: elevated `0 16px 48px rgba(0,0,0,0.55)`, subtle `0 4px 12px rgba(0,0,0,0.4)`
 - Logo: Use `logo-saab.png` (transparent background), NOT the SVG
+- Brand name text: **SAAB Foods** (not just "SAAB"). Use `font-medium` (not bold/black), color `#eb3138` (logo red). This color is ONLY for the brand name text, not for buttons or other UI elements.
 
 ### Responsiveness
 Mobile-first. Breakpoints: `480px` → `768px` → `1024px`.
+
+### Invoice PDF (InvoiceService.js)
+
+**Fonts** (only two, no built-in Helvetica):
+- `Helvetica World Italic` (`helvetica-world-italic.ttf`) → alias `HelvBold` — all titles, labels, section headers, product names, amounts, BALANCE DUE
+- `IBM Plex Sans Italic` (`IBMPlexSans-Italic-VariableFont_wdth,wght.ttf`) → alias `IBMItalic` — addresses, descriptions, metadata values, footer text, signatures
+
+**Logo**: `Logo-do-invoice.png` (includes "SAAB FOODS" text — do NOT render text separately)
+
+**Layout rules**:
+- One row per item; box weights consolidated into multi-line DESCRIPTION (`{type}\n{NN} CASES\n{w1} + {w2} + ...`)
+- Dynamic row height via `doc.heightOfString()` based on description content
+- Table values (RATE, AMOUNT) use plain numbers (`fmtNum`); only BALANCE DUE uses `$` (`fmt`)
+- Multi-page: when rows exceed `PAGE_BOTTOM`, draws table border, adds new page with header + table header, continues
+- DUE DATE = `createdAt + 7 days`; TERMS = `Net 7`
+- SALES REP shows `order.client?.email`
+- Reference model: `frontend/src/assets/Model-Example-Invoice.png`
 
 ### Legacy Files (do NOT import)
 `Dashboard.jsx`, `NewOrder.jsx`, `ContainerCard.jsx`, `ContainerMap.jsx`, `InventoryList.jsx`, `OrderForm.jsx`, `ProductSelector.jsx`

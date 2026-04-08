@@ -43,6 +43,19 @@ const IconContainers = () => (
   </svg>
 )
 
+const IconLogistics = () => (
+  <svg className={navIconCls} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round"
+      d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375
+         a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0
+         a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124
+         a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25
+         M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106
+         a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635
+         m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
+  </svg>
+)
+
 const IconLogout = () => (
   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round"
@@ -53,13 +66,17 @@ const IconLogout = () => (
 )
 
 const NAV_ITEMS = [
-  { key: 'dashboard',  label: 'Dashboard',   Icon: IconDashboard,  path: '/expedicao/dashboard'  },
-  { key: 'orders',     label: 'Pedidos',      Icon: IconOrders,     path: '/expedicao/orders'     },
+  { key: 'dashboard',   label: 'Dashboard',   Icon: IconDashboard,   path: '/expedicao/dashboard'   },
+  { key: 'orders',      label: 'Pedidos',      Icon: IconOrders,      path: '/expedicao/orders'      },
+  { key: 'containers',  label: 'Estoque',      Icon: IconContainers,  path: '/expedicao/containers'  },
+  { key: 'logistics',   label: 'Logística',    Icon: IconLogistics,   path: '/expedicao/logistics'   },
 ]
 
 const PAGE_TITLES = {
-  dashboard:  'Dashboard',
-  orders:     'Fila de Pedidos',
+  dashboard:   'Dashboard',
+  orders:      'Fila de Pedidos',
+  containers:  'Estoque',
+  logistics:   'Logística',
 }
 
 const ExpedicaoLayout = () => {
@@ -83,8 +100,10 @@ const ExpedicaoLayout = () => {
     : 'EX'
 
   const activeKey = (() => {
-    if (location.pathname.startsWith('/expedicao/orders'))     return 'orders'
-    if (location.pathname.startsWith('/expedicao/dashboard')) return 'dashboard'
+    if (location.pathname.startsWith('/expedicao/orders'))      return 'orders'
+    if (location.pathname.startsWith('/expedicao/containers'))  return 'containers'
+    if (location.pathname.startsWith('/expedicao/logistics'))   return 'logistics'
+    if (location.pathname.startsWith('/expedicao/dashboard'))   return 'dashboard'
     return 'dashboard'
   })()
 
@@ -111,12 +130,12 @@ const ExpedicaoLayout = () => {
         <div className="flex flex-row md:flex-col items-center md:items-start justify-between md:justify-start gap-1 px-5 pt-6 pb-5 border-b border-border-sidebar">
           <div className="flex items-center gap-2">
             <img src={logoSaab} alt="SAAB" className="h-10 w-auto max-w-[120px] object-contain object-left" />
-            <span className="text-[0.9375rem] font-bold text-black tracking-wide">SAAB</span>
+            <span className="text-[0.9375rem] font-medium tracking-wide" style={{ color: '#eb3138' }}>SAAB Foods</span>
             <span className="text-[0.9375rem] text-secondary hidden md:inline">|</span>
             <span className="text-[0.8125rem] text-secondary hidden md:inline">Expedição</span>
           </div>
           <button 
-            className="md:hidden p-2 text-black hover:text-gray-600"
+            className="md:hidden p-2 text-primary hover:text-secondary"
             onClick={() => setSidebarOpen(false)}
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -130,7 +149,7 @@ const ExpedicaoLayout = () => {
           {NAV_ITEMS.map(({ key, label, Icon, path }) => (
             <button
               key={key}
-              className={`flex items-center gap-3 px-5 py-3 text-sm font-medium text-black
+              className={`flex items-center gap-3 px-5 py-3 text-sm font-medium text-primary
                 border-l-[3px] border-transparent w-full text-left cursor-pointer
                 bg-transparent transition-colors duration-150
                 hover:bg-sidebar-hover hover:text-nav-hover hover:border-l-border-input
@@ -175,12 +194,19 @@ const ExpedicaoLayout = () => {
             </button>
             <h2 className="text-[0.9rem] font-semibold text-primary m-0">{PAGE_TITLES[activeKey]}</h2>
           </div>
-          <div className="flex items-center gap-2 text-[0.8rem] text-secondary">
+          <div className="flex items-center gap-3">
             <ThemeToggle />
-            <span>{user?.email}</span>
-            <div className="w-8 h-8 rounded-full bg-avatar-bg border border-red flex items-center justify-center text-xs font-bold text-avatar-tx shrink-0">
-              {initials}
-            </div>
+            <span className="text-xs text-secondary max-w-[180px] overflow-hidden text-ellipsis whitespace-nowrap hidden sm:block">{user?.email}</span>
+            <button
+              className="flex items-center gap-2 bg-transparent border border-border-input px-3 py-2 text-[0.8125rem] text-secondary cursor-pointer rounded transition-colors duration-150 hover:text-error hover:bg-error-bg hover:border-error"
+              onClick={handleLogout}
+              title="Sair"
+            >
+              <span className="hidden sm:inline">Sair</span>
+              <svg className="w-4 h-4 sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+            </button>
           </div>
         </header>
 

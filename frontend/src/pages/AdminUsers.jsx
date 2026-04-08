@@ -24,7 +24,7 @@ const IconClose = () => (
 )
 
 /* ── Grid layout classes ── */
-const gridCols = 'grid items-center gap-3 px-5 grid-cols-[1fr_110px_72px] min-[480px]:grid-cols-[48px_1fr_110px_80px] md:grid-cols-[48px_1fr_110px_1fr_80px] lg:grid-cols-[56px_1fr_130px_1fr_130px_88px]'
+const gridCols = 'grid items-center gap-3 px-5 grid-cols-[1fr_110px_72px] min-[480px]:grid-cols-[1fr_110px_80px] md:grid-cols-[1fr_1fr_110px_1fr_80px] lg:grid-cols-[1fr_1fr_130px_1fr_130px_88px]'
 
 /* ── Modal ── */
 const UserModal = ({ initial, onClose, onSaved }) => {
@@ -33,8 +33,8 @@ const UserModal = ({ initial, onClose, onSaved }) => {
   const [name,     setName]     = useState(initial?.name     ?? '')
   const [email,    setEmail]    = useState(initial?.email    ?? '')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [role,     setRole]     = useState(initial?.role     ?? 'VENDEDOR')
-  const [address,  setAddress]  = useState(initial?.address  ?? '')
   const [saving,   setSaving]   = useState(false)
   const [error,    setError]    = useState('')
 
@@ -47,11 +47,23 @@ const UserModal = ({ initial, onClose, onSaved }) => {
       return
     }
 
-    const data = { name, email, role, address }
-    if (password) data.password = password
-    if (!isEdit)  {
-      if (!password) { setError('Password obrigatória.'); return }
+    if (!name.trim()) {
+      setError('Nome é obrigatório.')
+      return
     }
+
+    if (!isEdit && !password) {
+      setError('Password obrigatória.')
+      return
+    }
+
+    if (password && password !== confirmPassword) {
+      setError('As passwords não coincidem.')
+      return
+    }
+
+    const data = { name, email, role }
+    if (password) data.password = password
 
     setSaving(true)
     try {
@@ -93,6 +105,20 @@ const UserModal = ({ initial, onClose, onSaved }) => {
 
         <form className="p-6 flex flex-col gap-[1.125rem]" onSubmit={handleSubmit}>
           <div className="flex flex-col gap-1.5">
+            <label className="text-[0.6875rem] font-bold uppercase tracking-[0.12em] text-secondary" htmlFor="name">Nome</label>
+            <input
+              id="name"
+              type="text"
+              required
+              className="bg-input border border-border-input rounded px-3 py-[0.5625rem] text-sm text-primary transition-[border-color,box-shadow] duration-150 w-full placeholder:text-muted focus:outline-none focus:border-red focus:ring-[3px] focus:ring-red/20"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="Nome do utilizador"
+              autoComplete="off"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
             <label className="text-[0.6875rem] font-bold uppercase tracking-[0.12em] text-secondary" htmlFor="email">Email</label>
             <input
               id="email"
@@ -122,6 +148,21 @@ const UserModal = ({ initial, onClose, onSaved }) => {
           </div>
 
           <div className="flex flex-col gap-1.5">
+            <label className="text-[0.6875rem] font-bold uppercase tracking-[0.12em] text-secondary" htmlFor="confirmPassword">
+              Confirmar Password
+            </label>
+            <input
+              id="confirmPassword"
+              type="password"
+              className="bg-input border border-border-input rounded px-3 py-[0.5625rem] text-sm text-primary transition-[border-color,box-shadow] duration-150 w-full placeholder:text-muted focus:outline-none focus:border-red focus:ring-[3px] focus:ring-red/20"
+              value={confirmPassword}
+              onChange={e => setConfirmPassword(e.target.value)}
+              placeholder="Repetir password"
+              autoComplete="new-password"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
             <label className="text-[0.6875rem] font-bold uppercase tracking-[0.12em] text-secondary" htmlFor="role">Perfil</label>
             <select
               id="role"
@@ -134,22 +175,6 @@ const UserModal = ({ initial, onClose, onSaved }) => {
               ))}
             </select>
           </div>
-
-          {isClient && (
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[0.6875rem] font-bold uppercase tracking-[0.12em] text-secondary" htmlFor="address">
-                Endereço <span className="text-red font-bold">*</span>
-              </label>
-              <input
-                id="address"
-                type="text"
-                className="bg-input border border-border-input rounded px-3 py-[0.5625rem] text-sm text-primary transition-[border-color,box-shadow] duration-150 w-full placeholder:text-muted focus:outline-none focus:border-red focus:ring-[3px] focus:ring-red/20"
-                value={address}
-                onChange={e => setAddress(e.target.value)}
-                placeholder="Ex: 4200 Conroy Rd, Orlando, FL"
-              />
-            </div>
-          )}
 
           {error && (
             <p className="text-[0.8125rem] text-error bg-error-bg border border-red/25 rounded px-3.5 py-2.5 m-0">
@@ -217,8 +242,8 @@ const AdminUsers = () => {
 
       <div className="bg-surface border border-border rounded-md overflow-hidden shadow-card">
         <div className={`${gridCols} py-2.5 text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-muted border-b border-border`}>
-          <span className="hidden min-[480px]:inline">ID</span>
-          <span>Nome / Email</span>
+          <span>Nome</span>
+          <span className="hidden md:inline">Email</span>
           <span>Perfil</span>
           <span className="hidden md:inline">Endereço</span>
           <span className="hidden lg:inline">Criado em</span>
@@ -237,10 +262,8 @@ const AdminUsers = () => {
                 key={user.id}
                 className={`${gridCols} py-3.5 border-b border-border last:border-b-0 transition-colors duration-[120ms] hover:bg-hover`}
               >
-                <span className="hidden min-[480px]:inline font-mono text-[0.8125rem] text-muted">#{user.id}</span>
-                <span className="text-sm text-primary overflow-hidden text-ellipsis whitespace-nowrap">
-                  {user.role === 'CLIENTE' ? user.name || '—' : user.email}
-                </span>
+                <span className="text-sm text-primary overflow-hidden text-ellipsis whitespace-nowrap">{user.name || '—'}</span>
+                <span className="hidden md:inline text-sm text-primary overflow-hidden text-ellipsis whitespace-nowrap">{user.email}</span>
                 <span>
                   <span
                     className="inline-block px-2.5 py-0.5 rounded-full border text-[0.6875rem] font-semibold uppercase tracking-[0.08em] whitespace-nowrap"

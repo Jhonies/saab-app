@@ -39,7 +39,7 @@
   --status-error:   #dc2626;
   --status-error-bg: #fee2e2;
   --status-info:    #4a4a4a;
-  --status-info-bg: #1a1a1a;
+  --status-info-bg: #e8e8e8;
 }
 
 /* ── Dark theme ── */
@@ -75,8 +75,8 @@
   --status-warn-bg: #1f1200;
   --status-error:   #f87171;
   --status-error-bg: #140a0a;
-  --status-info:    #888888;
-  --status-info-bg: #1a1a1a;
+  --status-info:    #a0a0a0;
+  --status-info-bg: #2a2a2a;
 }
 
 body {

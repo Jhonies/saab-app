@@ -20,7 +20,12 @@
       "Bash(grep \"\\\\.jsx$\")",
       "Bash(git:*)",
       "Bash(grep -rL \"module\\\\.css\" pages/*.jsx components/*.jsx components/**/*.jsx)",
-      "Bash(find . -name \"*.module.css\" -type f -delete)"
+      "Bash(find . -name \"*.module.css\" -type f -delete)",
+      "Bash(mkdir -p C:/Users/vlope/Desktop/Project/saab-app/backend/src/assets)",
+      "Bash(cp \"C:/Users/vlope/Desktop/Project/saab-app/frontend/src/assets/Logo-saab-S.png\" \"C:/Users/vlope/Desktop/Project/saab-app/backend/src/assets/Logo-saab-S.png\")",
+      "Bash(cp \"C:/Users/vlope/Desktop/Project/saab-app/frontend/src/assets/IBMPlexSans-Italic-VariableFont_wdth,wght.ttf\" \"C:/Users/vlope/Desktop/Project/saab-app/backend/src/assets/\")",
+      "Bash(cp \"C:/Users/vlope/Desktop/Project/saab-app/frontend/src/assets/helvetica-world-italic.ttf\" \"C:/Users/vlope/Desktop/Project/saab-app/backend/src/assets/\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d[0]['lat'], d[0]['lon']\\) if d else print\\('not found'\\)\")"
     ]
   }
 }

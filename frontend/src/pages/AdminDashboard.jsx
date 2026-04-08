@@ -108,7 +108,7 @@ const PAGE_TITLES = {
 
 const STATUS_CONFIG = {
   PENDING:    { label: 'Pendente',      color: '#b45309', bg: '#b4530918' },
-  CONFIRMED:  { label: 'Confirmado',    color: '#888888', bg: '#88888818' },
+  CONFIRMED:  { label: 'Confirmado',    color: '#a0a0a0', bg: '#a0a0a025' },
   SEPARATING: { label: 'Em Separação',  color: '#4a4a4a', bg: '#4a4a4a18' },
   READY:      { label: 'Pronto',        color: '#15803d', bg: '#15803d18' },
   IN_TRANSIT: { label: 'Em Trânsito',   color: '#4a4a4a', bg: '#4a4a4a18' },
@@ -292,12 +292,12 @@ const AdminDashboard = () => {
         <div className="flex flex-row md:flex-col items-center md:items-start justify-between md:justify-start gap-1 px-5 pt-6 pb-5 border-b border-border-sidebar">
           <div className="flex items-center gap-2">
             <img src={logoSaab} alt="SAAB" className="h-10 w-auto max-w-[120px] object-contain object-left" />
-            <span className="text-[0.9375rem] font-bold text-black tracking-wide">SAAB</span>
+            <span className="text-[0.9375rem] font-medium tracking-wide" style={{ color: '#eb3138' }}>SAAB Foods</span>
             <span className="text-[0.9375rem] text-secondary hidden md:inline">|</span>
             <span className="text-[0.8125rem] text-secondary hidden md:inline">Admin</span>
           </div>
           <button 
-            className="md:hidden p-2 text-black hover:text-gray-600"
+            className="md:hidden p-2 text-primary hover:text-secondary"
             onClick={() => setSidebarOpen(false)}
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -311,7 +311,7 @@ const AdminDashboard = () => {
           {NAV_ITEMS.map(({ key, label, Icon, path }) => (
             <button
               key={key}
-              className={`flex items-center gap-3 px-5 py-3 text-sm font-medium text-black cursor-pointer bg-transparent
+              className={`flex items-center gap-3 px-5 py-3 text-sm font-medium text-primary cursor-pointer bg-transparent
                 border-0 border-l-[3px] border-transparent w-full text-left
                 transition-colors duration-150
                 hover:bg-sidebar-hover hover:text-nav-hover hover:border-l-border-input

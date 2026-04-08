@@ -14,7 +14,7 @@ const INCLUDE_FULL = {
 }
 
 /* ── Depot fallback (Orlando, FL) ── */
-const DEFAULT_GEO = { address: 'Orlando, FL', lat: 28.5383, lon: -81.3792 }
+const DEFAULT_GEO = { address: '6843 Conway Rd Ste 120, Orlando, FL 32812', lat: 28.4626, lon: -81.3305 }
 
 /* ── Create ── */
 const createOrder = async ({ clientId, clientName, address: inputAddress, items }) => {

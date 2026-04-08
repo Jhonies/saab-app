@@ -5,7 +5,7 @@ const prisma = new PrismaClient()
 /* ────────────────────────────────────────
    Coordenadas do depósito SAAB (Orlando)
 ──────────────────────────────────────── */
-const DEPOT = { lat: 28.5383, lon: -81.3792, address: 'Depósito SAAB — Orlando, FL' }
+const DEPOT = { lat: 28.4626, lon: -81.3305, address: '6843 Conway Rd Ste 120, Orlando, FL 32812' }
 
 /* ── Haversine: distância em km entre dois pontos ── */
 const haversine = (a, b) => {

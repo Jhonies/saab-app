@@ -22,7 +22,7 @@ const CLIENT_GEO = {
   },
 }
 
-const DEFAULT_GEO = { address: 'Orlando, FL', lat: 28.5383, lon: -81.3792 }
+const DEFAULT_GEO = { address: '6843 Conway Rd Ste 120, Orlando, FL 32812', lat: 28.4626, lon: -81.3305 }
 
 const getGeo = (email = '') => CLIENT_GEO[email] ?? DEFAULT_GEO
 

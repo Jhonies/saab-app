@@ -67,7 +67,7 @@ const VendedorLayout = () => {
             </svg>
           </button>
           <img src={logoSaab} alt="SAAB" className="h-8 w-auto object-contain" />
-          <span className="text-[0.9375rem] font-bold text-primary tracking-wide">SAAB</span>
+          <span className="text-[0.9375rem] font-medium tracking-wide" style={{ color: '#eb3138' }}>SAAB Foods</span>
           <span className="text-[0.9375rem] text-secondary hidden sm:inline">|</span>
           <span className="text-[0.8125rem] text-secondary hidden sm:inline">Vendedor</span>
         </div>
@@ -77,10 +77,14 @@ const VendedorLayout = () => {
             {user?.email}
           </span>
           <button
-            className="hidden md:inline-flex bg-transparent border border-border-input rounded px-3.5 py-1.5 text-xs font-semibold text-secondary cursor-pointer transition-colors duration-150 hover:border-secondary hover:text-primary"
+            className="flex items-center gap-2 bg-transparent border border-border-input px-3 py-2 text-[0.8125rem] text-secondary cursor-pointer rounded transition-colors duration-150 hover:text-error hover:bg-error-bg hover:border-error"
             onClick={handleLogout}
+            title="Sair"
           >
-            Sair
+            <span className="hidden sm:inline">Sair</span>
+            <svg className="w-4 h-4 sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
           </button>
         </div>
       </header>
@@ -102,10 +106,10 @@ const VendedorLayout = () => {
         <div className="flex items-center justify-between px-5 pt-6 pb-5 border-b border-border-sidebar">
           <div className="flex items-center gap-2">
             <img src={logoSaab} alt="SAAB" className="h-10 w-auto object-contain" />
-            <span className="text-[0.9375rem] font-bold text-black tracking-wide">SAAB</span>
+            <span className="text-[0.9375rem] font-medium tracking-wide" style={{ color: '#eb3138' }}>SAAB Foods</span>
           </div>
           <button
-            className="p-2 text-black hover:text-gray-600 bg-transparent border-0 cursor-pointer"
+            className="p-2 text-primary hover:text-secondary bg-transparent border-0 cursor-pointer"
             onClick={() => setMenuOpen(false)}
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -118,7 +122,7 @@ const VendedorLayout = () => {
           {NAV_ITEMS.map(({ key, label, Icon, path }) => (
             <button
               key={key}
-              className={`flex items-center gap-3 px-5 py-3 text-sm font-medium text-black
+              className={`flex items-center gap-3 px-5 py-3 text-sm font-medium text-primary
                 border-l-[3px] border-transparent w-full text-left cursor-pointer
                 bg-transparent transition-colors duration-150
                 hover:bg-sidebar-hover hover:text-nav-hover hover:border-l-border-input
