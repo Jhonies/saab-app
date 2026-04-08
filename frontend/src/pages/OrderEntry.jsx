@@ -75,7 +75,7 @@ const OrderEntry = () => {
   const filteredClients = useMemo(() => {
     const q = clientQuery.trim().toLowerCase()
     if (q.length < 1) return clients
-    return clients.filter(c => c.name.toLowerCase().includes(q))
+    return clients.filter(c => c.name?.toLowerCase().includes(q))
   }, [clientQuery, clients])
 
   const isNewClient = useMemo(() => {
@@ -88,7 +88,7 @@ const OrderEntry = () => {
     const q = searchQuery.trim().toLowerCase()
     if (q.length < 1) return []
     return products
-      .filter(p => p.name.toLowerCase().includes(q) || p.type.toLowerCase().includes(q))
+      .filter(p => p.name?.toLowerCase().includes(q) || p.type?.toLowerCase().includes(q))
       .slice(0, 20)
   }, [searchQuery, products])
 
