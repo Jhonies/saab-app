@@ -307,36 +307,66 @@ const generateInvoice = (order, stream) => {
    }
 
    // ═══════════════════════════════════════════
-   // ── BALANCE DUE + FOOTER (drawn as a single block) ──
+   // ── BALANCE DUE + FOOTER ──
    // ═══════════════════════════════════════════
+   // Footer layout (always drawn top-to-bottom to avoid PDFKit auto-pagination):
+   //   balY   → Balance Due (right) + NSF Fee (left)
+   //   balY+35 → Signatures
+   //   pageH-40 → separator line
+   //   pageH-30 → Sales Tax cert text
+   //   pageH-18 → Zelle
    const balW = 200
 
-   // If the whole footer block doesn't fit, move to a new page
    const footerFits = (y + 14 + FOOTER_BLOCK_H) <= doc.page.height - 40
    let balY
 
    if (footerFits) {
-      // Everything on the same page — balance right after table
       balY = y + 14
    } else {
-      // Not enough room — new page, balance at the top
       doc.addPage()
       drawHeader()
       balY = 125
    }
 
+   const pageH = doc.page.height
+
+   // ── Balance Due (right) + NSF Fee (left) — same row ──
    doc.font(BOLD).fontSize(10).fillColor(COLOR.black)
       .text('BALANCE DUE', PR - balW, balY, { width: balW - 90, align: 'right' })
-
-   doc.font(BOLD).fontSize(14).fillColor(COLOR.black)
+   doc.font(BODY).fontSize(14).fillColor(COLOR.black)
       .text(fmt(grandTotal), PR - 85, balY - 2, { width: 85, align: 'right' })
 
-   // ── Footer always anchored to page bottom ──
-   // Red line at bottom, then certificate text + Zelle ABOVE the line
-   const pageH = doc.page.height
-   const zeleY = pageH - 30   // Zelle (last line, near bottom edge)
-   const certY = zeleY - 12   // Certificate text (one line above Zelle)
-   const lineY = certY - 8    // Red line above certificate text
+   doc.font(BODY).fontSize(6).fillColor(COLOR.black)
+      .text('NSF Fee: $25/$30/$40 or 5% of check, per FL law.', PL, balY)
+   doc.font(BODY).fontSize(6).fillColor(COLOR.black)
+      .text(
+         '*PRODUCT RETURNS ONLY AT DELIVERY / DEVOLUCIONES\n' +
+         'SOLO AL MOMENTO DE LA ENTREGA / DEVOLUÇÕES SOMENTE\n' +
+         'NO ATO DA ENTREGA',
+         PL, balY + 10
+      )
+
+   // ── Signature fields ──
+   const lineLen = 180
+   const sigY = balY + 52
+
+   doc.font(BODY).fontSize(8).fillColor(COLOR.black)
+      .text('Print name:', PL, sigY)
+   doc.moveTo(PL + 58, sigY + 10).lineTo(PL + 58 + lineLen, sigY + 10)
+      .strokeColor(COLOR.black).lineWidth(0.5).stroke()
+
+   doc.font(BODY).fontSize(8).fillColor(COLOR.black)
+      .text('Date:  ____/____/____', PL, sigY + 22)
+
+   doc.font(BODY).fontSize(8).fillColor(COLOR.black)
+      .text('Please, sign:', PL, sigY + 44)
+   doc.moveTo(PL + 70, sigY + 54).lineTo(PL + 70 + lineLen, sigY + 54)
+      .strokeColor(COLOR.black).lineWidth(0.5).stroke()
+
+   // ── Bottom bar (drawn top-to-bottom, anchored to page bottom) ──
+   const zeleY  = pageH - 18
+   const certY  = zeleY - 14
+   const lineY  = certY - 8
 
    doc.moveTo(PL, lineY).lineTo(PR, lineY)
       .strokeColor(COLOR.lineGray).lineWidth(0.3).stroke()
@@ -349,37 +379,6 @@ const generateInvoice = (order, stream) => {
 
    doc.font(BOLD).fontSize(6.5).fillColor(COLOR.black)
       .text('Zelle: 321-989-7211', PL, zeleY, { width: CW, align: 'center' })
-
-   // ── Signature fields — anchored above bottom bar ──
-   const lineLen = 180
-   const sigY = lineY - 68
-
-   doc.font(BODY).fontSize(8).fillColor(COLOR.black)
-      .text('Print name:', PL, sigY)
-   doc.moveTo(PL + 58, sigY + 10).lineTo(PL + 58 + lineLen, sigY + 10)
-      .strokeColor(COLOR.darkGray).lineWidth(0.5).stroke()
-
-   doc.font(BODY).fontSize(8).fillColor(COLOR.black)
-      .text('Date:  ____/____/____', PL, sigY + 22)
-
-   doc.font(BODY).fontSize(8).fillColor(COLOR.black)
-      .text('Please, sign:', PL, sigY + 44)
-   doc.moveTo(PL + 70, sigY + 54).lineTo(PL + 70 + lineLen, sigY + 54)
-      .strokeColor(COLOR.darkGray).lineWidth(0.5).stroke()
-
-   // ── NSF / Returns policy — anchored above signatures ──
-   const nsfY = sigY - 50
-
-   doc.font(BODY).fontSize(6).fillColor(COLOR.black)
-      .text('NSF Fee: $25/$30/$40 or 5% of check, per FL law.', PL, nsfY)
-
-   doc.font(BODY).fontSize(6).fillColor(COLOR.black)
-      .text(
-         '*PRODUCT RETURNS ONLY AT DELIVERY / DEVOLUCIONES\n' +
-         'SOLO AL MOMENTO DE LA ENTREGA / DEVOLUÇÕES SOMENTE\n' +
-         'NO ATO DA ENTREGA',
-         PL, nsfY + 12
-      )
 
    doc.end()
 }
