@@ -6,10 +6,12 @@ const fs = require('fs')
 const ASSETS_DIR = path.join(__dirname, '..', 'assets')
 const LOGO_PATH = path.join(ASSETS_DIR, 'Logo-do-invoice.png')
 const FONT_HELV_BOLD = path.join(ASSETS_DIR, 'helvetica-world-bold.ttf')
+const FONT_HELV_ITALIC = path.join(ASSETS_DIR, 'helvetica-world-italic.ttf')
 const FONT_IBM_ITALIC = path.join(ASSETS_DIR, 'IBMPlexSans-Italic-VariableFont_wdth,wght.ttf')
+const FONT_IBM_BOLD = path.join(ASSETS_DIR, 'IBMPlexSans-Bold.ttf')
 
 // Warn on missing assets at startup (non-fatal — invoice endpoint will fail individually)
-for (const f of [LOGO_PATH, FONT_HELV_BOLD, FONT_IBM_ITALIC]) {
+for (const f of [LOGO_PATH, FONT_HELV_BOLD, FONT_HELV_ITALIC, FONT_IBM_ITALIC, FONT_IBM_BOLD]) {
    if (!fs.existsSync(f)) {
       console.warn(`[InvoiceService] asset não encontrado — ${f}`)
    }
@@ -53,7 +55,9 @@ const generateInvoice = (order, stream) => {
    doc.pipe(stream)
 
    doc.registerFont('HelvBold', FONT_HELV_BOLD)
+   doc.registerFont('HelvItalic', FONT_HELV_ITALIC)
    doc.registerFont('IBMItalic', FONT_IBM_ITALIC)
+   doc.registerFont('IBMBold', FONT_IBM_BOLD)
 
    const W = doc.page.width
    const PL = 48
@@ -77,10 +81,10 @@ const generateInvoice = (order, stream) => {
    // ═══════════════════════════════════════════
    const drawHeader = () => {
       // Left: Company info
-      doc.font(BOLD).fontSize(11).fillColor(COLOR.black)
+      doc.font('IBMBold').fontSize(11).fillColor(COLOR.black)
          .text('SAAB Foods LLC', PL, 40)
 
-      doc.font(BODY).fontSize(8).fillColor(COLOR.black)
+      doc.font('HelvItalic').fontSize(8).fillColor(COLOR.black)
          .text('6843 Conway Rd Ste 120', PL, 55)
          .text('Orlando, FL 32812', PL, 65)
          .text('saab@saabfoods.com', PL, 75)
@@ -109,7 +113,7 @@ const generateInvoice = (order, stream) => {
    const col3 = PL + CW * 0.66
 
    // BILL TO
-   doc.font(BOLD).fontSize(8).fillColor(COLOR.black)
+   doc.font('IBMBold').fontSize(8).fillColor(COLOR.black)
       .text('BILL TO', col1, infoY)
    doc.font(BODY).fontSize(9).fillColor(COLOR.black)
       .text(
@@ -118,9 +122,9 @@ const generateInvoice = (order, stream) => {
       )
 
    // SHIP TO
-   doc.font(BOLD).fontSize(8).fillColor(COLOR.black)
+   doc.font('IBMBold').fontSize(8).fillColor(COLOR.black)
       .text('SHIP TO', col2, infoY)
-   doc.font(BODY).fontSize(9).fillColor(COLOR.black)
+   doc.font('HelvItalic').fontSize(9).fillColor(COLOR.black)
       .text(
          ([order.clientName, order.address].filter(Boolean).join('\n') || '—').toUpperCase(),
          col2, infoY + 14, { width: CW * 0.30 }
@@ -140,9 +144,9 @@ const generateInvoice = (order, stream) => {
 
    rightLabels.forEach(([label, value], i) => {
       const ly = infoY + i * 14
-      doc.font(BOLD).fontSize(8).fillColor(COLOR.black)
+      doc.font('IBMBold').fontSize(8).fillColor(COLOR.black)
          .text(label, col3, ly, { width: 80 })
-      doc.font(BOLD).fontSize(8).fillColor(COLOR.black)
+      doc.font('HelvItalic').fontSize(8).fillColor(COLOR.black)
          .text(value, col3 + 82, ly, { width: 100 })
    })
 
@@ -183,6 +187,9 @@ const generateInvoice = (order, stream) => {
          ['AMOUNT', cols.amount],
       ]
 
+      // Header background
+      doc.rect(PL, yPos, CW, headerH).fill(COLOR.lightRed)
+
       headers.forEach(([label, col]) => {
          doc.font(BODY).fontSize(7).fillColor(COLOR.red)
             .text(label, col.x + 4, yPos + 6, { width: col.w - 8 })
@@ -216,8 +223,15 @@ const generateInvoice = (order, stream) => {
             const subtotal = totalWeight * (item.pricePerLb || 0)
             grandTotal += subtotal
 
-            // Build multi-line description
-            const weightsStr = boxes.map(bw => Number(bw.weightLb).toFixed(2)).join(' + ')
+            // Build multi-line description — max 3 weights per line
+            const weightValues = boxes.map(bw => Number(bw.weightLb).toFixed(2))
+            const weightChunks = []
+            for (let i = 0; i < weightValues.length; i += 3) {
+               weightChunks.push(weightValues.slice(i, i + 3).join(' + '))
+            }
+            const weightsStr = weightChunks
+               .map((chunk, i) => i < weightChunks.length - 1 ? chunk + ' +' : chunk)
+               .join('\n')
             const descLines = [
                prodType,
                `${String(boxes.length).padStart(2, '0')} CASES`,
@@ -258,8 +272,8 @@ const generateInvoice = (order, stream) => {
    // ── Render rows with dynamic height & pagination ──
    for (const row of rows) {
       // Calculate row height based on description text
-      doc.font(BODY).fontSize(8)
-      const descHeight = doc.heightOfString(row.desc || '—', { width: cols.desc.w - 8 })
+      doc.font('HelvItalic').fontSize(8)
+      const descHeight = doc.heightOfString((row.desc || '—').toUpperCase(), { width: cols.desc.w - 8 })
       const rowH = Math.max(22, descHeight + 12) // min 22, pad 6 top + 6 bottom
 
       // Check page overflow — leave room for at least this row + footer
@@ -279,24 +293,24 @@ const generateInvoice = (order, stream) => {
       const cellY = y + 6
 
       // QTY
-      doc.font(BODY).fontSize(8).fillColor(COLOR.black)
-         .text(row.qty, cols.qty.x + 4, cellY, { width: cols.qty.w - 8 })
+      doc.font('HelvItalic').fontSize(8).fillColor(COLOR.black)
+         .text(String(row.qty).toUpperCase(), cols.qty.x + 4, cellY, { width: cols.qty.w - 8 })
 
-      // ITEM (product name — bold)
-      doc.font(BOLD).fontSize(8).fillColor(COLOR.black)
+      // ITEM (product name — IBM bold)
+      doc.font('IBMBold').fontSize(8).fillColor(COLOR.black)
          .text(row.item, cols.item.x + 4, cellY, { width: cols.item.w - 8 })
 
-      // DESCRIPTION (multi-line — body)
-      doc.font(BODY).fontSize(8).fillColor(COLOR.black)
-         .text(row.desc || '—', cols.desc.x + 4, cellY, { width: cols.desc.w - 8 })
+      // DESCRIPTION (multi-line — HelvItalic uppercase)
+      doc.font('HelvItalic').fontSize(8).fillColor(COLOR.black)
+         .text((row.desc || '—').toUpperCase(), cols.desc.x + 4, cellY, { width: cols.desc.w - 8 })
 
       // RATE
-      doc.font(BODY).fontSize(8).fillColor(COLOR.black)
-         .text(row.rate, cols.rate.x + 4, cellY, { width: cols.rate.w - 8, align: 'right' })
+      doc.font('HelvItalic').fontSize(8).fillColor(COLOR.black)
+         .text(String(row.rate).toUpperCase(), cols.rate.x + 4, cellY, { width: cols.rate.w - 8, align: 'right' })
 
-      // AMOUNT (bold)
-      doc.font(BOLD).fontSize(8).fillColor(COLOR.black)
-         .text(row.amount, cols.amount.x + 4, cellY, { width: cols.amount.w - 8, align: 'right' })
+      // AMOUNT
+      doc.font('HelvItalic').fontSize(8).fillColor(COLOR.black)
+         .text(String(row.amount).toUpperCase(), cols.amount.x + 4, cellY, { width: cols.amount.w - 8, align: 'right' })
 
       // Bottom border
       doc.moveTo(PL, y + rowH).lineTo(PR, y + rowH)
@@ -331,14 +345,14 @@ const generateInvoice = (order, stream) => {
    const pageH = doc.page.height
 
    // ── Balance Due (right) + NSF Fee (left) — same row ──
-   doc.font(BOLD).fontSize(10).fillColor(COLOR.black)
+   doc.font('HelvItalic').fontSize(10).fillColor(COLOR.black)
       .text('BALANCE DUE', PR - balW, balY, { width: balW - 90, align: 'right' })
-   doc.font(BODY).fontSize(14).fillColor(COLOR.black)
-      .text(fmt(grandTotal), PR - 85, balY - 2, { width: 85, align: 'right' })
+   doc.font('HelvItalic').fontSize(14).fillColor(COLOR.black)
+      .text(fmt(grandTotal).toUpperCase(), PR - 85, balY - 2, { width: 85, align: 'right' })
 
-   doc.font(BODY).fontSize(6).fillColor(COLOR.black)
+   doc.font('HelvItalic').fontSize(6).fillColor(COLOR.black)
       .text('NSF Fee: $25/$30/$40 or 5% of check, per FL law.', PL, balY)
-   doc.font(BODY).fontSize(6).fillColor(COLOR.black)
+   doc.font('HelvItalic').fontSize(6).fillColor(COLOR.black)
       .text(
          '*PRODUCT RETURNS ONLY AT DELIVERY / DEVOLUCIONES\n' +
          'SOLO AL MOMENTO DE LA ENTREGA / DEVOLUÇÕES SOMENTE\n' +
@@ -350,15 +364,15 @@ const generateInvoice = (order, stream) => {
    const lineLen = 180
    const sigY = balY + 52
 
-   doc.font(BODY).fontSize(8).fillColor(COLOR.black)
+   doc.font('HelvItalic').fontSize(8).fillColor(COLOR.black)
       .text('Print name:', PL, sigY)
    doc.moveTo(PL + 58, sigY + 10).lineTo(PL + 58 + lineLen, sigY + 10)
       .strokeColor(COLOR.black).lineWidth(0.5).stroke()
 
-   doc.font(BODY).fontSize(8).fillColor(COLOR.black)
+   doc.font('HelvItalic').fontSize(8).fillColor(COLOR.black)
       .text('Date:  ____/____/____', PL, sigY + 22)
 
-   doc.font(BODY).fontSize(8).fillColor(COLOR.black)
+   doc.font('HelvItalic').fontSize(8).fillColor(COLOR.black)
       .text('Please, sign:', PL, sigY + 44)
    doc.moveTo(PL + 70, sigY + 54).lineTo(PL + 70 + lineLen, sigY + 54)
       .strokeColor(COLOR.black).lineWidth(0.5).stroke()
@@ -366,13 +380,13 @@ const generateInvoice = (order, stream) => {
    // ── Bottom bar — drawn sequentially to avoid PDFKit auto-pagination ──
    const certY = pageH - 70
 
-   doc.font(BODY).fontSize(6.5).fillColor(COLOR.black)
+   doc.font('HelvItalic').fontSize(6.5).fillColor(COLOR.black)
       .text(
          'Please, send your update Sales Tax Certificate to saab@saabfoods.com or delivering it to one of our representatives.',
          PL, certY, { width: CW, align: 'center' }
       )
 
-   doc.font(BOLD).fontSize(6.5).fillColor(COLOR.black)
+   doc.font('HelvItalic').fontSize(6.5).fillColor(COLOR.black)
       .text('Zelle: 321-989-7211', PL, doc.y + 4, { width: CW, align: 'center' })
 
    doc.end()
