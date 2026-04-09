@@ -101,9 +101,6 @@ const generateInvoice = (order, stream) => {
    doc.font(BODY).fontSize(22).fillColor(COLOR.red)
       .text('INVOICE', PL, invoiceY)
 
-   // Thin red line under title
-   doc.moveTo(PL, invoiceY + 28).lineTo(PR, invoiceY + 28)
-      .strokeColor(COLOR.red).lineWidth(0.5).stroke()
 
    // ── Info block ──
    const infoY = invoiceY + 40
@@ -124,7 +121,10 @@ const generateInvoice = (order, stream) => {
    doc.font(BOLD).fontSize(8).fillColor(COLOR.black)
       .text('SHIP TO', col2, infoY)
    doc.font(BODY).fontSize(9).fillColor(COLOR.black)
-      .text((order.address || '—').toUpperCase(), col2, infoY + 14, { width: CW * 0.30 })
+      .text(
+         ([order.clientName, order.address].filter(Boolean).join('\n') || '—').toUpperCase(),
+         col2, infoY + 14, { width: CW * 0.30 }
+      )
 
    // INVOICE # / DATE / DUE DATE / TERMS
    // DUE DATE = createdAt + 7 days
@@ -190,7 +190,7 @@ const generateInvoice = (order, stream) => {
 
       // Bottom border under header
       doc.moveTo(PL, yPos + headerH).lineTo(PR, yPos + headerH)
-         .strokeColor(COLOR.red).lineWidth(0.5).stroke()
+         .strokeColor(COLOR.lineGray).lineWidth(0.3).stroke()
 
       return yPos + headerH
    }
@@ -207,7 +207,7 @@ const generateInvoice = (order, stream) => {
    const rows = []
    for (const item of items) {
       const prodName = item.product?.name ?? '—'
-      const prodType = item.product?.type ?? ''
+      const prodType = prodName
 
       if (item.priceType === 'PER_LB') {
          const boxes = item.boxWeights ?? []
@@ -339,7 +339,7 @@ const generateInvoice = (order, stream) => {
    const lineY = certY - 8    // Red line above certificate text
 
    doc.moveTo(PL, lineY).lineTo(PR, lineY)
-      .strokeColor(COLOR.red).lineWidth(0.5).stroke()
+      .strokeColor(COLOR.lineGray).lineWidth(0.3).stroke()
 
    doc.font(BODY).fontSize(6.5).fillColor(COLOR.black)
       .text(
