@@ -363,8 +363,8 @@ const generateInvoice = (order, stream) => {
    doc.moveTo(PL + 70, sigY + 54).lineTo(PL + 70 + lineLen, sigY + 54)
       .strokeColor(COLOR.black).lineWidth(0.5).stroke()
 
-   // ── Bottom bar (drawn top-to-bottom, anchored to page bottom) ──
-   const zeleY  = pageH - 18
+   // ── Bottom bar — must stay above the 40pt bottom margin to avoid PDFKit auto-pagination ──
+   const zeleY  = pageH - 48
    const certY  = zeleY - 14
    const lineY  = certY - 8
 
