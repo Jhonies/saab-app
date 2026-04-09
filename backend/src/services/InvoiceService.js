@@ -363,13 +363,8 @@ const generateInvoice = (order, stream) => {
    doc.moveTo(PL + 70, sigY + 54).lineTo(PL + 70 + lineLen, sigY + 54)
       .strokeColor(COLOR.black).lineWidth(0.5).stroke()
 
-   // ── Bottom bar — must stay above the 40pt bottom margin to avoid PDFKit auto-pagination ──
-   const zeleY  = pageH - 48
-   const certY  = zeleY - 14
-   const lineY  = certY - 8
-
-   doc.moveTo(PL, lineY).lineTo(PR, lineY)
-      .strokeColor(COLOR.lineGray).lineWidth(0.3).stroke()
+   // ── Bottom bar — drawn sequentially to avoid PDFKit auto-pagination ──
+   const certY = pageH - 70
 
    doc.font(BODY).fontSize(6.5).fillColor(COLOR.black)
       .text(
@@ -378,7 +373,7 @@ const generateInvoice = (order, stream) => {
       )
 
    doc.font(BOLD).fontSize(6.5).fillColor(COLOR.black)
-      .text('Zelle: 321-989-7211', PL, zeleY, { width: CW, align: 'center' })
+      .text('Zelle: 321-989-7211', PL, doc.y + 4, { width: CW, align: 'center' })
 
    doc.end()
 }
