@@ -7,7 +7,8 @@ const authRoutes      = require('./src/routes/authRoutes')
 const inventoryRoutes = require('./src/routes/inventoryRoutes')
 const orderRoutes     = require('./src/routes/orderRoutes')
 const routeRoutes     = require('./src/routes/routeRoutes')
-const userRoutes      = require('./src/routes/userRoutes')
+const userRoutes       = require('./src/routes/userRoutes')
+const clientRoutes     = require('./src/routes/clientRoutes')
 
 const app  = express()
 const PORT = process.env.PORT || 3000
@@ -23,7 +24,8 @@ app.use('/auth',      authRoutes)
 app.use('/inventory', inventoryRoutes)
 app.use('/orders',    orderRoutes)
 app.use('/routes',    routeRoutes)
-app.use('/users',     userRoutes)
+app.use('/users',       userRoutes)
+app.use('/clients',     clientRoutes)
 
 app.get('/health', async (_req, res) => {
   try {

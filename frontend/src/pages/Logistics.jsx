@@ -82,8 +82,8 @@ const IconClose = () => (
 
 /* ── RouteModal ── */
 const RouteModal = ({ order, onClose }) => {
-  const email = order.client?.email ?? ''
-  const geo   = getGeo(email)
+  const clientLabel = order.clientName || order.client?.email || '—'
+  const geo   = getGeo(order.client?.email ?? '')
 
   const delta  = 0.04
   const bbox   = `${geo.lon - delta},${geo.lat - delta},${geo.lon + delta},${geo.lat + delta}`
@@ -125,7 +125,7 @@ const RouteModal = ({ order, onClose }) => {
         <div className="grid grid-cols-2 border-t border-border shrink-0">
           <div className="py-3.5 px-5 border-r border-border">
             <p className="text-[0.625rem] font-bold uppercase tracking-wider text-muted mb-0.5 mt-0">Cliente</p>
-            <p className="text-[0.8125rem] text-primary m-0">{email || '—'}</p>
+            <p className="text-[0.8125rem] text-primary m-0">{clientLabel}</p>
           </div>
           <div className="py-3.5 px-5">
             <p className="text-[0.625rem] font-bold uppercase tracking-wider text-muted mb-0.5 mt-0">Status</p>
@@ -149,9 +149,8 @@ const RouteModal = ({ order, onClose }) => {
 }
 
 /* ── Mobile order card ── */
-const OrderMobileCard = ({ order, geo, onMap, onInvoice, onConfirm, onCancel, onDeliver }) => {
+const OrderMobileCard = ({ order, clientLabel, geo, onMap, onInvoice, onConfirm, onCancel, onDeliver }) => {
   const status = order.status ?? 'PENDING'
-  const email  = order.client?.email ?? '—'
   const weight = order.weightLb && order.weightLb > 0
     ? `${Number(order.weightLb).toFixed(1)} lbs`
     : null
@@ -167,7 +166,7 @@ const OrderMobileCard = ({ order, geo, onMap, onInvoice, onConfirm, onCancel, on
           {STATUS_LABEL[status] ?? status}
         </span>
       </div>
-      <p className="text-[0.8125rem] font-semibold text-primary m-0">{email}</p>
+      <p className="text-[0.8125rem] font-semibold text-primary m-0">{clientLabel}</p>
       <p className="text-[0.8rem] text-secondary m-0">{geo.address}</p>
       <div className="flex gap-3 text-xs text-muted">
         <span>{order.totalBoxes} cxs</span>
@@ -330,8 +329,8 @@ const Logistics = () => {
               )}
 
               {!loading && !error && visible.map(order => {
-                const email  = order.client?.email ?? '—'
-                const geo    = getGeo(email)
+                const clientLabel = order.clientName || order.client?.email || '—'
+                const geo    = getGeo(order.client?.email ?? '')
                 const status = order.status ?? 'PENDING'
 
                 const dateDisplay = status === 'DELIVERED' && order.deliveredAt
@@ -345,7 +344,7 @@ const Logistics = () => {
                 return (
                   <tr key={order.id} className="group">
                     <td className="px-4 py-3.5 text-primary border-b border-border align-middle group-last:border-b-0 group-hover:bg-hover">#{order.id}</td>
-                    <td className="px-4 py-3.5 text-primary border-b border-border align-middle group-last:border-b-0 group-hover:bg-hover">{email}</td>
+                    <td className="px-4 py-3.5 text-primary border-b border-border align-middle group-last:border-b-0 group-hover:bg-hover">{clientLabel}</td>
                     <td className="px-4 py-3.5 text-primary border-b border-border align-middle group-last:border-b-0 group-hover:bg-hover">{geo.address}</td>
                     <td className="px-4 py-3.5 text-primary border-b border-border align-middle group-last:border-b-0 group-hover:bg-hover">{order.totalBoxes}</td>
                     <td className="px-4 py-3.5 text-primary border-b border-border align-middle group-last:border-b-0 group-hover:bg-hover">{weightDisplay}</td>
@@ -418,12 +417,13 @@ const Logistics = () => {
             </p>
           )}
           {!loading && !error && visible.map(order => {
-            const email = order.client?.email ?? '—'
-            const geo   = getGeo(email)
+            const clientLabel = order.clientName || order.client?.email || '—'
+            const geo   = getGeo(order.client?.email ?? '')
             return (
               <OrderMobileCard
                 key={order.id}
                 order={order}
+                clientLabel={clientLabel}
                 geo={geo}
                 onMap={() => setActiveMap(order)}
                 onInvoice={() => openInvoice(order.id)}

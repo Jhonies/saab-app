@@ -5,6 +5,7 @@ import {
   confirmOrder,
   separateOrder,
   packOrder,
+  openInvoice,
 } from '../services/orderService'
 
 import { STATUS_CONFIG, STATUS_FALLBACK } from '../constants/status'
@@ -334,6 +335,12 @@ const ExpedicaoPickingList = () => {
             <p className="text-[0.9375rem] font-semibold text-ok m-0">
               Pedido embalado e pronto para carga pelo motorista.
             </p>
+            <button
+              className="inline-flex items-center gap-2 bg-transparent border border-ok rounded px-5 py-2 text-sm font-bold text-ok cursor-pointer w-fit transition-colors duration-150 hover:bg-ok hover:text-on-red"
+              onClick={() => openInvoice(order.id)}
+            >
+              Ver Invoice (PDF)
+            </button>
           </div>
         )}
 

@@ -35,7 +35,12 @@
       "Bash(xargs -I {} bash -c 'echo \"=== {} ===\" && head -30 \"{}\"')",
       "Bash(ls -la pages/*.jsx)",
       "Bash(awk '{print $NF}')",
-      "Bash(grep -h \"^export const\" \"C:/Users/vlope/Desktop/Project/saab-app/frontend/src/services\"/*.js)"
+      "Bash(grep -h \"^export const\" \"C:/Users/vlope/Desktop/Project/saab-app/frontend/src/services\"/*.js)",
+      "Bash(mv backend/src/services/RestaurantService.js backend/src/services/ClientService.js)",
+      "Bash(mv backend/src/controllers/RestaurantController.js backend/src/controllers/ClientController.js)",
+      "Bash(mv backend/src/routes/restaurantRoutes.js backend/src/routes/clientRoutes.js)",
+      "Bash(mv frontend/src/services/restaurantService.js frontend/src/services/clientService.js)",
+      "Bash(mv frontend/src/pages/AdminRestaurants.jsx frontend/src/pages/AdminClients.jsx)"
     ]
   }
 }

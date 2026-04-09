@@ -68,6 +68,16 @@ model Container {
   @@index([productId])
 }
 
+model Client {
+  id        Int      @id @default(autoincrement())
+  name      String
+  address   String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+}
+
 // Valores válidos: "PENDING" | "CONFIRMED" | "SEPARATING" | "READY" | "IN_TRANSIT" | "DELIVERED" | "CANCELLED"
 model Order {
   id                  Int         @id @default(autoincrement())

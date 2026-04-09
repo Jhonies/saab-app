@@ -78,6 +78,16 @@ const IconUsers = () => (
   </svg>
 )
 
+const IconRestaurant = () => (
+  <svg className={navIconClass} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round"
+      d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36
+         m11.14 0H18.64m-13.28 0v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21
+         M3 3h12M3 3v3.75M3 3H1.5m14.25 0v3.75M3 6.75h12m-12 0H1.5m14.25 0H21
+         M21 12H1.5m0-5.25V12m0 0v9m19.5-9V6.75M21 12v9" />
+  </svg>
+)
+
 const IconLogout = () => (
   <svg style={{ width: '1rem', height: '1rem' }} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round"
@@ -93,7 +103,8 @@ const NAV_ITEMS = [
   { key: 'orders',    label: 'Pedidos',   Icon: IconOrders,    path: '/admin/orders/new' },
   { key: 'logistics', label: 'Logística', Icon: IconLogistics, path: '/admin/logistics' },
   { key: 'routes',    label: 'Rotas',     Icon: IconRoutes,    path: '/admin/routes' },
-  { key: 'users',     label: 'Utilizadores',  Icon: IconUsers,     path: '/admin/users' },
+  { key: 'clients', label: 'Clientes', Icon: IconRestaurant, path: '/admin/clients' },
+  { key: 'users',       label: 'Utilizadores', Icon: IconUsers,      path: '/admin/users' },
 ]
 
 const PAGE_TITLES = {
@@ -102,8 +113,9 @@ const PAGE_TITLES = {
   products:  'Produtos',
   orders:    'Pedidos',
   logistics: 'Logística',
-  routes:    'Rotas',
-  users:     'Utilizadores',
+  routes:      'Rotas',
+  clients:     'Clientes',
+  users:       'Utilizadores',
 }
 
 import { STATUS_CONFIG, STATUS_FALLBACK } from '../constants/status'
@@ -202,7 +214,7 @@ export const AdminHome = () => {
                     #{String(order.id).padStart(4, '0')}
                   </span>
                   <span className="text-[0.8125rem] text-primary overflow-hidden text-ellipsis whitespace-nowrap pr-2">
-                    {order.client?.email ?? '—'}
+                    {order.clientName || order.client?.email || '—'}
                   </span>
                   <span>
                     <span
@@ -256,8 +268,9 @@ const AdminDashboard = () => {
     if (location.pathname.startsWith('/admin/orders'))    return 'orders'
     if (location.pathname.startsWith('/admin/logistics')) return 'logistics'
     if (location.pathname.startsWith('/admin/routes'))    return 'routes'
-    if (location.pathname.startsWith('/admin/products'))  return 'products'
-    if (location.pathname.startsWith('/admin/users'))     return 'users'
+    if (location.pathname.startsWith('/admin/products'))     return 'products'
+    if (location.pathname.startsWith('/admin/clients'))     return 'clients'
+    if (location.pathname.startsWith('/admin/users'))       return 'users'
     return 'inventory'
   })()
 

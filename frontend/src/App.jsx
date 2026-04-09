@@ -17,8 +17,9 @@ import ExpedicaoLayout      from './pages/ExpedicaoLayout'
 import ExpedicaoDashboard   from './pages/ExpedicaoDashboard'
 import ExpedicaoOrders      from './pages/ExpedicaoOrders'
 import ExpedicaoPickingList from './pages/ExpedicaoPickingList'
-import VendedorLayout from './pages/VendedorLayout'
-import VendedorOrders from './pages/VendedorOrders'
+import VendedorLayout    from './pages/VendedorLayout'
+import VendedorOrders    from './pages/VendedorOrders'
+import AdminClients      from './pages/AdminClients'
 
 const App = () => {
   return (
@@ -48,6 +49,7 @@ const App = () => {
             <Route path="logistics"     element={<Logistics />} />
             <Route path="routes"        element={<DriverRoutes />} />
             <Route path="products"      element={<AdminProducts />} />
+            <Route path="clients"       element={<AdminClients />} />
             <Route path="users"         element={<AdminUsers />} />
             <Route path="*"             element={<Navigate to="inventory" replace />} />
           </Route>
