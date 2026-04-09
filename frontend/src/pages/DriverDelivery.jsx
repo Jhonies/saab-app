@@ -2,15 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { fetchOrderById, loadOrder, deliverOrder } from '../services/orderService'
 
-const STATUS_CONFIG = {
-  PENDING:    { label: 'Pendente',     color: '#b45309', bg: '#b4530918' },
-  CONFIRMED:  { label: 'Confirmado',   color: '#a0a0a0', bg: '#a0a0a025' },
-  SEPARATING: { label: 'Em Separação', color: '#4a4a4a', bg: '#4a4a4a18' },
-  READY:      { label: 'Pronto',       color: '#15803d', bg: '#15803d18' },
-  IN_TRANSIT: { label: 'Em Trânsito',   color: '#4a4a4a', bg: '#4a4a4a18' },
-  DELIVERED:  { label: 'Entregue',     color: '#15803d', bg: '#15803d18' },
-  CANCELLED:  { label: 'Cancelado',    color: '#f87171', bg: '#f8717118' },
-}
+import { STATUS_CONFIG, STATUS_FALLBACK } from '../constants/status'
 
 /* ── Icons ── */
 const IconBack = () => (
@@ -82,7 +74,7 @@ const DriverDelivery = () => {
   if (loading) return <div className="py-12 px-6 text-sm text-muted text-center">A carregar...</div>
   if (error && !order) return <div className="py-12 px-6 text-sm text-muted text-center">{error}</div>
 
-  const cfg      = STATUS_CONFIG[order.status] ?? { label: order.status, color: '#888', bg: '#88888818' }
+  const cfg      = STATUS_CONFIG[order.status] ?? STATUS_FALLBACK
   const mapsUrl  = order.lat && order.lon
     ? `https://www.google.com/maps/dir/?api=1&destination=${order.lat},${order.lon}&travelmode=driving`
     : null

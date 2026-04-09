@@ -20,6 +20,3 @@ export const fetchProductStock = (id) =>
 
 export const searchProducts = (query) =>
   api.get(`/inventory/products/search?q=${encodeURIComponent(query)}`).then(r => r.data)
-
-export const deleteProduct = (id) =>
-  api.delete(`/inventory/products/${id}`)

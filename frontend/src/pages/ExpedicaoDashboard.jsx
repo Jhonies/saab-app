@@ -2,25 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { fetchOrders } from '../services/orderService'
 
-const STATUS_LABEL = {
-  PENDING:    'Pendente',
-  CONFIRMED:  'Confirmado',
-  SEPARATING: 'Em Separação',
-  READY:      'Pronto',
-  IN_TRANSIT: 'Em Trânsito',
-  DELIVERED:  'Entregue',
-  CANCELLED:  'Cancelado',
-}
-
-const STATUS_COLOR = {
-  PENDING:    '#b45309',
-  CONFIRMED:  '#888888',
-  SEPARATING: '#4a4a4a',
-  READY:      '#15803d',
-  IN_TRANSIT: '#505050',
-  DELIVERED:  '#15803d',
-  CANCELLED:  '#f87171',
-}
+import { STATUS_LABEL, STATUS_COLOR } from '../constants/status'
 
 const CARDS = [
   { key: 'PENDING',    label: 'Pendentes',         color: '#b45309' },

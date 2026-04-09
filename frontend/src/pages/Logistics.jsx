@@ -27,12 +27,7 @@ const DEFAULT_GEO = { address: '6843 Conway Rd Ste 120, Orlando, FL 32812', lat:
 const getGeo = (email = '') => CLIENT_GEO[email] ?? DEFAULT_GEO
 
 /* ── Status config ── */
-const STATUS_LABEL = {
-  PENDING:   'Pendente',
-  CONFIRMED: 'Confirmado',
-  DELIVERED: 'Entregue',
-  CANCELLED: 'Cancelado',
-}
+import { STATUS_LABEL } from '../constants/status'
 
 const BADGE_CLASSES = {
   PENDING:   'bg-warn-bg text-warn',

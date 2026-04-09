@@ -28,10 +28,4 @@ api.interceptors.response.use(
 export const loginRequest = (email, password) =>
   api.post('/auth/login', { email, password })
 
-export const registerUser = (data) =>
-  api.post('/auth/register', data).then(r => r.data)
-
-export const fetchUsers = (role) =>
-  api.get(`/auth/users${role ? `?role=${role}` : ''}`).then(r => r.data)
-
 export default api

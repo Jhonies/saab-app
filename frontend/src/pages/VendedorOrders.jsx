@@ -2,15 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { fetchOrders } from '../services/orderService'
 
-const STATUS_CONFIG = {
-  PENDING:    { label: 'Pendente',      color: '#b45309', bg: '#b4530918' },
-  CONFIRMED:  { label: 'Confirmado',    color: '#a0a0a0', bg: '#a0a0a025' },
-  SEPARATING: { label: 'Em Separação',  color: '#4a4a4a', bg: '#4a4a4a18' },
-  READY:      { label: 'Pronto',        color: '#15803d', bg: '#15803d18' },
-  IN_TRANSIT: { label: 'Em Trânsito',   color: '#4a4a4a', bg: '#4a4a4a18' },
-  DELIVERED:  { label: 'Entregue',      color: '#15803d', bg: '#15803d18' },
-  CANCELLED:  { label: 'Cancelado',     color: '#f87171', bg: '#f8717118' },
-}
+import { STATUS_CONFIG, STATUS_FALLBACK } from '../constants/status'
 
 const summariseItems = (items = []) => {
   if (!items.length) return '—'
@@ -21,7 +13,7 @@ const summariseItems = (items = []) => {
 
 /* ── Mobile order card ── */
 const OrderMobileCard = ({ order }) => {
-  const cfg = STATUS_CONFIG[order.status] ?? { label: order.status, color: '#888', bg: '#88888818' }
+  const cfg = STATUS_CONFIG[order.status] ?? STATUS_FALLBACK
   return (
     <div className="bg-surface border border-border rounded-md p-4 flex flex-col gap-2 shadow-card">
       <div className="flex items-center justify-between gap-2">
@@ -94,7 +86,7 @@ const VendedorOrders = () => {
           <p className="py-10 px-5 text-sm text-muted m-0 text-center">Nenhum pedido registado.</p>
         ) : (
           sorted.map(order => {
-            const cfg = STATUS_CONFIG[order.status] ?? { label: order.status, color: '#888', bg: '#88888818' }
+            const cfg = STATUS_CONFIG[order.status] ?? STATUS_FALLBACK
             return (
               <div key={order.id} className="grid grid-cols-[80px_1fr_1fr_70px_130px_100px] items-center px-5 py-3.5 gap-2 border-b border-border last:border-b-0 transition-colors duration-[120ms] hover:bg-hover max-lg:grid-cols-[70px_1fr_70px_130px_90px]">
                 <span className="font-mono text-[0.8125rem] font-bold text-secondary">

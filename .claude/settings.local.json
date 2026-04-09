@@ -28,7 +28,14 @@
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d[0]['lat'], d[0]['lon']\\) if d else print\\('not found'\\)\")",
       "Bash(node -e \"require\\('./src/lib/schemas'\\); console.log\\('schemas OK'\\)\")",
       "Bash(node -e \"require\\('./src/controllers/OrderController'\\); console.log\\('controller OK'\\)\")",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(grep -E \"^/c/Users.*\\\\.\\(css|module\\\\.css\\)$\")",
+      "Bash(npm ls:*)",
+      "Bash(grep -l \"import.*from.*components/\" pages/*.jsx)",
+      "Bash(xargs -I {} bash -c 'echo \"=== {} ===\" && head -30 \"{}\"')",
+      "Bash(ls -la pages/*.jsx)",
+      "Bash(awk '{print $NF}')",
+      "Bash(grep -h \"^export const\" \"C:/Users/vlope/Desktop/Project/saab-app/frontend/src/services\"/*.js)"
     ]
   }
 }

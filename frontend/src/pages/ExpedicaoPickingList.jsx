@@ -7,15 +7,7 @@ import {
   packOrder,
 } from '../services/orderService'
 
-const STATUS_CONFIG = {
-  PENDING:    { label: 'Pendente',      color: '#b45309', bg: '#b4530918' },
-  CONFIRMED:  { label: 'Confirmado',    color: '#a0a0a0', bg: '#a0a0a025' },
-  SEPARATING: { label: 'Em Separação',  color: '#4a4a4a', bg: '#4a4a4a18' },
-  READY:      { label: 'Pronto',        color: '#15803d', bg: '#15803d18' },
-  IN_TRANSIT: { label: 'Em Trânsito',   color: '#505050', bg: '#50505018' },
-  DELIVERED:  { label: 'Entregue',      color: '#15803d', bg: '#15803d18' },
-  CANCELLED:  { label: 'Cancelado',     color: '#f87171', bg: '#f8717118' },
-}
+import { STATUS_CONFIG, STATUS_FALLBACK } from '../constants/status'
 
 const fmt = (n) =>
   Number(n).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
@@ -150,7 +142,7 @@ const ExpedicaoPickingList = () => {
   if (loading) return <div className="py-12 px-6 text-sm text-muted text-center">A carregar...</div>
   if (error && !order) return <div className="py-12 px-6 text-sm text-muted text-center">{error}</div>
 
-  const cfg = STATUS_CONFIG[order.status] ?? { label: order.status, color: '#888', bg: '#88888818' }
+  const cfg = STATUS_CONFIG[order.status] ?? STATUS_FALLBACK
   const readOnly = ['READY', 'IN_TRANSIT', 'DELIVERED', 'CANCELLED'].includes(order.status)
 
   return (
