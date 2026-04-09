@@ -1,6 +1,5 @@
 import api from './authService'
 
-export const fetchClients    = ()     => api.get('/orders/clients').then(r => r.data)
 export const fetchOrders     = ()     => api.get('/orders').then(r => r.data)
 export const fetchOrderById  = (id)   => api.get(`/orders/${id}`).then(r => r.data)
 export const createOrder     = (data) => api.post('/orders', data).then(r => r.data)

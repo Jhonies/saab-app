@@ -34,16 +34,4 @@ const updateUser = async (req, res) => {
   }
 }
 
-/* ── Create Client (vendedor cria cliente com apenas nome) ── */
-const createClient = async (req, res) => {
-  const { name } = req.body
-
-  try {
-    const client = await UserService.createClient({ name })
-    return res.status(201).json(client)
-  } catch (err) {
-    return res.status(err.status || 500).json({ message: err.message })
-  }
-}
-
-module.exports = { listUsers, createUser, updateUser, createClient }
+module.exports = { listUsers, createUser, updateUser }

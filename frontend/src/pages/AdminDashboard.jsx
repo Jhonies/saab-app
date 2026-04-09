@@ -78,7 +78,7 @@ const IconUsers = () => (
   </svg>
 )
 
-const IconRestaurant = () => (
+const IconClient = () => (
   <svg className={navIconClass} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round"
       d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36
@@ -103,7 +103,7 @@ const NAV_ITEMS = [
   { key: 'orders',    label: 'Pedidos',   Icon: IconOrders,    path: '/admin/orders/new' },
   { key: 'logistics', label: 'Logística', Icon: IconLogistics, path: '/admin/logistics' },
   { key: 'routes',    label: 'Rotas',     Icon: IconRoutes,    path: '/admin/routes' },
-  { key: 'clients', label: 'Clientes', Icon: IconRestaurant, path: '/admin/clients' },
+  { key: 'clients', label: 'Clientes', Icon: IconClient, path: '/admin/clients' },
   { key: 'users',       label: 'Utilizadores', Icon: IconUsers,      path: '/admin/users' },
 ]
 

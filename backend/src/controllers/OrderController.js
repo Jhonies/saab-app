@@ -1,5 +1,5 @@
 const OrderService   = require('../services/OrderService')
-const UserService    = require('../services/UserService')
+const ClientService  = require('../services/ClientService')
 const InvoiceService = require('../services/InvoiceService')
 const { createOrderSchema, packOrderSchema, updateStatusSchema } = require('../lib/schemas')
 
@@ -49,7 +49,7 @@ const getOrder = async (req, res, next) => {
 /* ── List clients ── */
 const listClients = async (_req, res, next) => {
   try {
-    const clients = await UserService.listClients()
+    const clients = await ClientService.list()
     return res.json(clients)
   } catch (err) { next(err) }
 }

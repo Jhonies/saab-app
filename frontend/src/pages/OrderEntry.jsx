@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { fetchProducts, fetchProductStock } from '../services/inventoryService'
-import { fetchClients, createOrder } from '../services/orderService'
-import { createClient } from '../services/userService'
+import { createOrder } from '../services/orderService'
+import { fetchClients, createClient } from '../services/clientService'
 
 const fmt = (n) =>
   Number(n).toLocaleString('en-US', { style: 'currency', currency: 'USD' })

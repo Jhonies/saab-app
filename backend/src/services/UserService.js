@@ -5,38 +5,15 @@ const USER_SELECT = { id: true, name: true, email: true, role: true, address: tr
 
 const VALID_ROLES = ['ADMIN', 'EXPEDICAO', 'MOTORISTA', 'VENDEDOR']
 
-const listClients = () =>
-  prisma.user.findMany({
-    where:   { role: 'CLIENTE' },
-    select:  { id: true, name: true, address: true },
-    orderBy: { name: 'asc' },
-  })
-
 const listUsers = (role) =>
   prisma.user.findMany({
-    where:   role ? { role } : undefined,
+    where:   role ? { role } : { role: { in: VALID_ROLES } },
     select:  USER_SELECT,
     orderBy: { createdAt: 'desc' },
   })
 
 const findByEmail = (email) =>
   prisma.user.findUnique({ where: { email } })
-
-const createClient = async ({ name }) => {
-  if (!name?.trim()) {
-    throw Object.assign(new Error('Nome é obrigatório.'), { status: 400 })
-  }
-
-  return prisma.user.create({
-    data: {
-      name:   name.trim(),
-      email:  `cli_${Date.now()}@temp.saab`,
-      password: await bcrypt.hash('temp_client_123', 12),
-      role:   'CLIENTE',
-    },
-    select: { id: true, name: true },
-  })
-}
 
 const createUser = async ({ name, email, password, role, address, lat, lon }) => {
   if (!email?.trim()) {
@@ -112,4 +89,4 @@ const updateUser = async (id, { name, email, password, role, address, lat, lon }
   })
 }
 
-module.exports = { listClients, listUsers, findByEmail, createUser, updateUser, createClient }
+module.exports = { listUsers, findByEmail, createUser, updateUser }
