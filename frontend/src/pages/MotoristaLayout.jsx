@@ -3,6 +3,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import logoSaab from '../assets/Logo-saab-S.png'
 import ThemeToggle from '../components/ThemeToggle'
+import NoticesBanner from '../components/NoticesBanner'
 
 /* ── Icons ── */
 const navIconCls = 'w-[1.125rem] h-[1.125rem] shrink-0 opacity-80'
@@ -159,6 +160,7 @@ const MotoristaLayout = () => {
 
       <main className="flex-1 overflow-y-auto">
         <Outlet />
+        <NoticesBanner />
       </main>
     </div>
   )

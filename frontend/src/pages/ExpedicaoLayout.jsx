@@ -3,6 +3,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import logoSaab from '../assets/Logo-saab-S.png'
 import ThemeToggle from '../components/ThemeToggle'
+import NoticesBanner from '../components/NoticesBanner'
 
 /* ── Icons ── */
 const navIconCls = 'w-[1.125rem] h-[1.125rem] shrink-0 opacity-80'
@@ -65,6 +66,13 @@ const IconNotices = () => (
   </svg>
 )
 
+const IconGtin = () => (
+  <svg className={navIconCls} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6v12m4.5-12v12m4.5-12v12m3-12v12m4.5-12v12" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M6 6v12m6-12v12" strokeWidth="3" />
+  </svg>
+)
+
 const IconLogout = () => (
   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round"
@@ -79,6 +87,7 @@ const NAV_ITEMS = [
   { key: 'orders',      label: 'Pedidos',      Icon: IconOrders,      path: '/expedicao/orders'      },
   { key: 'containers',  label: 'Estoque',      Icon: IconContainers,  path: '/expedicao/containers'  },
   { key: 'stock',       label: 'Estoque Geral', Icon: IconContainers,  path: '/expedicao/stock'       },
+  { key: 'gtin',        label: 'GTINs',         Icon: IconGtin,        path: '/expedicao/gtin'        },
   { key: 'logistics',   label: 'Logística',    Icon: IconLogistics,   path: '/expedicao/logistics'   },
   { key: 'notices',     label: 'Avisos',       Icon: IconNotices,     path: '/expedicao/notices'     },
 ]
@@ -88,6 +97,7 @@ const PAGE_TITLES = {
   orders:      'Fila de Pedidos',
   containers:  'Estoque',
   stock:       'Estoque Geral',
+  gtin:        'Cadastro de GTIN',
   logistics:   'Logística',
   notices:     'Avisos',
 }
@@ -115,6 +125,7 @@ const ExpedicaoLayout = () => {
   const activeKey = (() => {
     if (location.pathname.startsWith('/expedicao/orders'))      return 'orders'
     if (location.pathname.startsWith('/expedicao/stock'))       return 'stock'
+    if (location.pathname.startsWith('/expedicao/gtin'))        return 'gtin'
     if (location.pathname.startsWith('/expedicao/containers'))  return 'containers'
     if (location.pathname.startsWith('/expedicao/logistics'))   return 'logistics'
     if (location.pathname.startsWith('/expedicao/dashboard'))   return 'dashboard'
@@ -227,6 +238,7 @@ const ExpedicaoLayout = () => {
 
         <main className="flex-1 overflow-y-auto">
           <Outlet />
+          <NoticesBanner />
         </main>
 
       </div>

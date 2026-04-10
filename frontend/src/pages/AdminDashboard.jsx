@@ -97,6 +97,13 @@ const IconNotices = () => (
   </svg>
 )
 
+const IconGtin = () => (
+  <svg className={navIconClass} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6v12m4.5-12v12m4.5-12v12m3-12v12m4.5-12v12" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M6 6v12m6-12v12" strokeWidth="3" />
+  </svg>
+)
+
 const IconLogout = () => (
   <svg style={{ width: '1rem', height: '1rem' }} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round"
@@ -115,6 +122,7 @@ const NAV_ITEMS = [
   { key: 'routes',    label: 'Rotas',     Icon: IconRoutes,    path: '/admin/routes' },
   { key: 'clients', label: 'Clientes', Icon: IconClient, path: '/admin/clients' },
   { key: 'users',       label: 'Utilizadores', Icon: IconUsers,      path: '/admin/users' },
+  { key: 'gtin',        label: 'GTINs',       Icon: IconGtin,       path: '/admin/gtin' },
   { key: 'notices',  label: 'Avisos',   Icon: IconNotices, path: '/admin/notices' },
 ]
 
@@ -128,9 +136,11 @@ const PAGE_TITLES = {
   routes:      'Rotas',
   clients:     'Clientes',
   users:       'Utilizadores',
+  gtin:        'Cadastro de GTIN',
   notices:     'Avisos',
 }
 
+import NoticesBanner from '../components/NoticesBanner'
 import { STATUS_CONFIG, STATUS_FALLBACK } from '../constants/status'
 
 const isToday = (dateStr) =>
@@ -285,6 +295,7 @@ const AdminDashboard = () => {
     if (location.pathname.startsWith('/admin/products'))     return 'products'
     if (location.pathname.startsWith('/admin/clients'))     return 'clients'
     if (location.pathname.startsWith('/admin/users'))       return 'users'
+    if (location.pathname.startsWith('/admin/gtin'))        return 'gtin'
     if (location.pathname.startsWith('/admin/notices'))     return 'notices'
     return 'inventory'
   })()
@@ -390,6 +401,7 @@ const AdminDashboard = () => {
         {/* Content — child routes render here via <Outlet /> */}
         <main className="flex-1 overflow-y-auto">
           <Outlet />
+          <NoticesBanner />
         </main>
 
       </div>
