@@ -16,20 +16,37 @@ const BarcodeScanner = ({ onScan, onClose }) => {
   const [selectedCamera, setSelectedCamera] = useState('')
 
   useEffect(() => {
-    const hints = new Map()
-    hints.set(DecodeHintType.POSSIBLE_FORMATS, [
-      BarcodeFormat.CODE_128,
-      BarcodeFormat.EAN_13,
-      BarcodeFormat.EAN_8,
-      BarcodeFormat.UPC_A,
-    ])
-    hints.set(DecodeHintType.TRY_HARDER, true)
+    const initCamera = async () => {
+      try {
+        // 1. Verificar se a API de mediaDevices existe (requer HTTPS ou localhost)
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          setError('Câmera não suportada no navegador. Está usando HTTPS?')
+          return
+        }
 
-    const reader = new BrowserMultiFormatReader(hints)
-    readerRef.current = reader
+        // 2. Pedir permissão explicitamente para forçar o aviso do navegador
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+        stream.getTracks().forEach(track => track.stop()) // Parar a stream para o ZXing usar
 
-    reader.listVideoInputDevices()
-      .then(devices => {
+        // 3. Inicializar ZXing
+        const hints = new Map()
+        hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+          BarcodeFormat.CODE_128,
+          BarcodeFormat.EAN_13,
+          BarcodeFormat.EAN_8,
+          BarcodeFormat.UPC_A,
+        ])
+        hints.set(DecodeHintType.TRY_HARDER, true)
+
+        const reader = new BrowserMultiFormatReader(hints)
+        readerRef.current = reader
+
+        const devices = await reader.listVideoInputDevices()
+        if (!devices || devices.length === 0) {
+          setError('Nenhuma câmera encontrada.')
+          return
+        }
+
         setCameras(devices)
         // Prefer back camera
         const back = devices.find(d =>
@@ -41,11 +58,19 @@ const BarcodeScanner = ({ onScan, onClose }) => {
         const deviceId = back?.deviceId || devices[0]?.deviceId || ''
         setSelectedCamera(deviceId)
         startScanning(reader, deviceId)
-      })
-      .catch(() => setError('Sem acesso à câmera. Verifique as permissões.'))
+
+      } catch (err) {
+        console.error('Camera permissions:', err)
+        setError('Sem acesso à câmera. Verifique as permissões ou se bloqueou sem querer.')
+      }
+    }
+
+    initCamera()
 
     return () => {
-      reader.reset()
+      if (readerRef.current) {
+        readerRef.current.reset()
+      }
     }
   }, [])
 
