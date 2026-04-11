@@ -29,7 +29,6 @@ const ProductModal = ({ initial, onClose, onSaved }) => {
   const isEdit = !!initial
 
   const [name,         setName]        = useState(initial?.name         ?? '')
-  const [type,         setType]        = useState(initial?.type         ?? '')
   const [priceType,    setPriceType]   = useState(initial?.priceType    ?? 'PER_LB')
   const [pricePerLb,   setPricePerLb]  = useState(initial?.pricePerLb   ?? '')
   const [pricePerBox,  setPricePerBox] = useState(initial?.pricePerBox  ?? '')
@@ -50,7 +49,6 @@ const ProductModal = ({ initial, onClose, onSaved }) => {
 
     const data = {
       name: name.trim(),
-      type: type.trim(),
       priceType,
       pricePerLb: pricePerLb ? parseFloat(pricePerLb) : null,
       pricePerBox: pricePerBox ? parseFloat(pricePerBox) : null,
@@ -101,33 +99,6 @@ const ProductModal = ({ initial, onClose, onSaved }) => {
             />
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[0.6875rem] font-bold uppercase tracking-[0.12em] text-secondary" htmlFor="type">
-              Categoria
-              <span className="font-normal normal-case tracking-normal text-muted"> — texto livre</span>
-            </label>
-            <input
-              id="type"
-              type="text"
-              required
-              className="bg-input border border-border-input rounded px-3 py-[0.5625rem] text-sm text-primary w-full transition-[border-color,box-shadow] duration-150 placeholder:text-muted focus:outline-none focus:border-red focus:shadow-[0_0_0_3px_rgba(139,0,0,0.22)]"
-              value={type}
-              onChange={e => setType(e.target.value)}
-              placeholder="ex: Bovino, Bebidas, Acessorios, Suino"
-              list="type-suggestions"
-            />
-            <datalist id="type-suggestions">
-              <option value="Bovino" />
-              <option value="Suíno" />
-              <option value="Aves" />
-              <option value="Miúdos" />
-              <option value="Laticínios" />
-              <option value="Congelados" />
-              <option value="Secos" />
-              <option value="Bebidas" />
-              <option value="Outros" />
-            </datalist>
-          </div>
 
           <div className="flex flex-col gap-1.5">
             <label className="text-[0.6875rem] font-bold uppercase tracking-[0.12em] text-secondary">Tipo de Preço</label>
@@ -273,20 +244,9 @@ const AdminProducts = () => {
   const filteredProducts = useMemo(() => {
     if (!searchQuery.trim()) return visible
     const q = searchQuery.toLowerCase()
-    return visible.filter(p => 
-      p.name.toLowerCase().includes(q) || 
-      p.type.toLowerCase().includes(q)
-    )
+    return visible.filter(p => p.name.toLowerCase().includes(q))
   }, [visible, searchQuery])
 
-  const categories = useMemo(() => {
-    const map = {}
-    visible.forEach(p => {
-      if (!map[p.type]) map[p.type] = 0
-      map[p.type]++
-    })
-    return map
-  }, [visible])
 
   const handleSaved = (saved) => {
     setProducts(prev => {
@@ -374,7 +334,6 @@ const AdminProducts = () => {
                   onClick={() => handleSelectProduct(p)}
                 >
                   <span className="font-medium text-primary">{p.name}</span>
-                  <span className="text-muted ml-2">({p.type})</span>
                 </button>
               ))}
             </div>
@@ -390,7 +349,6 @@ const AdminProducts = () => {
           <div className="flex items-center gap-3 p-3 bg-hover border border-border rounded-md">
             <div className="flex-1">
               <span className="text-sm font-semibold text-primary">{selectedProduct.name}</span>
-              <span className="text-xs text-muted ml-2">({selectedProduct.type})</span>
             </div>
             <span className="text-xs font-medium text-secondary px-2 py-1 bg-surface rounded border border-border">
               {fmtPrice(selectedProduct, selectedProduct.priceType)}
@@ -411,21 +369,11 @@ const AdminProducts = () => {
         )}
       </div>
 
-      {!loading && visible.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {Object.entries(categories).map(([cat, count]) => (
-            <span key={cat} className="inline-flex items-center gap-1.5 px-3 py-1 bg-input border border-border-input rounded-full text-[0.6875rem] text-secondary">
-              {cat} <span className="font-bold text-primary">{count}</span>
-            </span>
-          ))}
-        </div>
-      )}
 
       <div className="bg-surface border border-border rounded-md overflow-hidden shadow-card">
-        <div className="grid grid-cols-[52px_1fr_130px_110px_100px_90px] md:grid-cols-[52px_1fr_130px_110px_100px_90px] max-md:grid-cols-[1fr_100px_90px] items-center px-5 py-2.5 text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-muted border-b border-border gap-3">
+        <div className="grid grid-cols-[52px_1fr_110px_100px_90px] md:grid-cols-[52px_1fr_110px_100px_90px] max-md:grid-cols-[1fr_100px_90px] items-center px-5 py-2.5 text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-muted border-b border-border gap-3">
           <span className="max-md:hidden">ID</span>
           <span>Nome</span>
-          <span className="max-md:hidden">Categoria</span>
           <span className="max-md:hidden">Preço</span>
           <span>Estado</span>
           <span />
@@ -439,11 +387,10 @@ const AdminProducts = () => {
           filteredProducts.map(product => (
             <div
               key={product.id}
-              className={`grid grid-cols-[52px_1fr_130px_110px_100px_90px] max-md:grid-cols-[1fr_100px_90px] items-center px-5 py-3.5 gap-3 border-b border-border last:border-b-0 transition-colors duration-100 hover:bg-hover ${product.active === false ? 'opacity-50' : ''}`}
+              className={`grid grid-cols-[52px_1fr_110px_100px_90px] max-md:grid-cols-[1fr_100px_90px] items-center px-5 py-3.5 gap-3 border-b border-border last:border-b-0 transition-colors duration-100 hover:bg-hover ${product.active === false ? 'opacity-50' : ''}`}
             >
               <span className="font-mono text-[0.8125rem] text-muted max-md:hidden">#{product.id}</span>
               <span className="text-sm font-medium text-primary overflow-hidden text-ellipsis whitespace-nowrap">{product.name}</span>
-              <span className="text-[0.8125rem] text-secondary max-md:hidden">{product.type}</span>
               <span className="text-[0.8125rem] text-secondary max-md:hidden">{fmtPrice(product, product.priceType)}</span>
               <span>
                 {product.active !== false

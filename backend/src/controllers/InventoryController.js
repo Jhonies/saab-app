@@ -60,13 +60,13 @@ const getProductStock = async (req, res) => {
 const createProduct = async (req, res) => {
   const { name, type, priceType, pricePerLb, pricePerBox, pricePerUnit } = req.body
 
-  if (!name?.trim() || !type?.trim()) {
-    return res.status(400).json({ message: 'Nome e tipo são obrigatórios.' })
+  if (!name?.trim()) {
+    return res.status(400).json({ message: 'Nome é obrigatório.' })
   }
 
   const product = await InventoryService.createProduct({
-    name: name.trim(),
-    type: type.trim(),
+    name: name.trim().toUpperCase(),
+    type: '',
     priceType,
     pricePerLb: pricePerLb ? Number(pricePerLb) : null,
     pricePerBox: pricePerBox ? Number(pricePerBox) : null,
@@ -83,8 +83,7 @@ const updateProduct = async (req, res) => {
   }
 
   const product = await InventoryService.updateProduct(req.params.id, {
-    ...(name   !== undefined && { name: name.trim() }),
-    ...(type   !== undefined && { type: type.trim() }),
+    ...(name   !== undefined && { name: name.trim().toUpperCase() }),
     ...(active !== undefined && { active: Boolean(active) }),
     ...(priceType !== undefined && { priceType }),
     ...(pricePerLb !== undefined && { pricePerLb: pricePerLb ? Number(pricePerLb) : null }),

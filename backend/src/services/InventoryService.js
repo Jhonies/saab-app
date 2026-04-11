@@ -27,17 +27,14 @@ const updateContainer = (id, data) =>
 const getAllProducts = ({ includeInactive = false } = {}) =>
   prisma.product.findMany({
     where:   includeInactive ? undefined : { active: true },
-    orderBy: [{ type: 'asc' }, { name: 'asc' }],
+    orderBy: [{ name: 'asc' }],
   })
 
 const searchProducts = (query) =>
   prisma.product.findMany({
     where: {
       active: true,
-      OR: [
-        { name: { contains: query, mode: 'insensitive' } },
-        { type: { contains: query, mode: 'insensitive' } },
-      ],
+      name: { contains: query, mode: 'insensitive' }
     },
     orderBy: [{ name: 'asc' }],
     take: 20,
@@ -110,7 +107,7 @@ const getConsolidatedStock = async () => {
   const containers = await prisma.container.findMany({
     where: { productId: { not: null }, quantity: { gt: 0 } },
     include: { product: true },
-    orderBy: [{ product: { type: 'asc' } }, { product: { name: 'asc' } }],
+    orderBy: [{ product: { name: 'asc' } }],
   })
 
   const map = new Map()
@@ -138,7 +135,7 @@ const getConsolidatedStock = async () => {
   }
 
   return [...map.values()].sort((a, b) =>
-    a.productType.localeCompare(b.productType) || a.productName.localeCompare(b.productName)
+    a.productName.localeCompare(b.productName)
   )
 }
 

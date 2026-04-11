@@ -88,7 +88,7 @@ const OrderEntry = () => {
     const q = searchQuery.trim().toLowerCase()
     if (q.length < 1) return []
     return products
-      .filter(p => p.name?.toLowerCase().includes(q) || p.type?.toLowerCase().includes(q))
+      .filter(p => p.name?.toLowerCase().includes(q))
       .slice(0, 20)
   }, [searchQuery, products])
 
@@ -167,7 +167,6 @@ const OrderEntry = () => {
       pricePerBox: priceType === 'PER_BOX' ? priceNum : null,
       pricePerUnit: priceType === 'PER_UNIT' ? priceNum : null,
       productName: selectedProduct.name,
-      productType: selectedProduct.type,
     }])
 
     setSelectedProduct(null)
@@ -303,7 +302,7 @@ const OrderEntry = () => {
                 <input
                   type="text"
                   className="bg-input border border-border-input rounded text-sm text-primary outline-none w-full py-[0.7rem] px-[0.875rem] transition-[border-color,box-shadow] duration-[180ms] focus:border-red focus:ring-2 focus:ring-red/20 placeholder:text-muted disabled:opacity-40 disabled:cursor-not-allowed"
-                  placeholder="Pesquisar produto por nome ou categoria..."
+                  placeholder="Pesquisar produto por nome..."
                   value={searchQuery}
                   onChange={e => { setSearchQuery(e.target.value); setShowDropdown(true); setHighlightIdx(-1) }}
                   onKeyDown={handleProductKeyDown}
@@ -322,7 +321,6 @@ const OrderEntry = () => {
                       >
                         <div>
                           <span className="font-medium text-primary">{p.name}</span>
-                          <span className="text-muted ml-2 text-xs">({p.type})</span>
                         </div>
                         {p.pricePerLb != null && (
                           <span className="text-xs text-secondary ml-3 shrink-0">{fmt(p.pricePerLb)}/lb</span>
@@ -345,7 +343,6 @@ const OrderEntry = () => {
                 <div className="flex items-center gap-2 p-2.5 bg-hover border border-border rounded-md">
                   <div className="flex-1">
                     <span className="text-sm font-semibold text-primary">{selectedProduct.name}</span>
-                    <span className="text-xs text-muted ml-2">({selectedProduct.type})</span>
                   </div>
                   <button
                     className="bg-transparent border-none text-muted cursor-pointer p-1 transition-colors duration-150 hover:text-error"

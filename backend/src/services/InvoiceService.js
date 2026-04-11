@@ -69,11 +69,9 @@ const generateInvoice = (order, stream) => {
    const BODY = 'IBMItalic'   // secondary & descriptive
 
    // ── Footer block height (used for both row overflow check and footer placement) ──
-   // balance(30) + nsf(50) + signatures(68) + bottom bar(50) ≈ 198
-   const FOOTER_BLOCK_H = 210
+   const FOOTER_BLOCK_H = 170
 
    // ── Page-break threshold ──
-   // Rows must stop early enough so the footer always fits on the same page
    const PAGE_BOTTOM = doc.page.height - 40 - FOOTER_BLOCK_H - 14
 
    // ═══════════════════════════════════════════
@@ -113,25 +111,24 @@ const generateInvoice = (order, stream) => {
    const col3 = PL + CW * 0.66
 
    // BILL TO
-   doc.font('IBMBold').fontSize(8).fillColor(COLOR.black)
+   doc.font('IBMBold').fontSize(10).fillColor(COLOR.black)
       .text('BILL TO', col1, infoY)
-   doc.font(BODY).fontSize(9).fillColor(COLOR.black)
+   doc.font('HelvItalic').fontSize(10).fillColor(COLOR.black)
       .text(
          ([order.clientName, order.address].filter(Boolean).join('\n') || '—').toUpperCase(),
          col1, infoY + 14, { width: CW * 0.30 }
       )
 
    // SHIP TO
-   doc.font('IBMBold').fontSize(8).fillColor(COLOR.black)
+   doc.font('IBMBold').fontSize(10).fillColor(COLOR.black)
       .text('SHIP TO', col2, infoY)
-   doc.font('HelvItalic').fontSize(9).fillColor(COLOR.black)
+   doc.font('HelvItalic').fontSize(10).fillColor(COLOR.black)
       .text(
          ([order.clientName, order.address].filter(Boolean).join('\n') || '—').toUpperCase(),
          col2, infoY + 14, { width: CW * 0.30 }
       )
 
    // INVOICE # / DATE / DUE DATE / TERMS
-   // DUE DATE = createdAt + 7 days
    const dueDate = new Date(order.createdAt)
    dueDate.setDate(dueDate.getDate() + 7)
 
@@ -144,37 +141,37 @@ const generateInvoice = (order, stream) => {
 
    rightLabels.forEach(([label, value], i) => {
       const ly = infoY + i * 14
-      doc.font('IBMBold').fontSize(8).fillColor(COLOR.black)
-         .text(label, col3, ly, { width: 80 })
-      doc.font('HelvItalic').fontSize(8).fillColor(COLOR.black)
-         .text(value, col3 + 82, ly, { width: 100 })
+      doc.font('IBMBold').fontSize(10).fillColor(COLOR.black)
+         .text(label, col3, ly, { width: 70, align: 'right' })
+      doc.font('HelvItalic').fontSize(10).fillColor(COLOR.black)
+         .text(value, col3 + 75, ly, { width: 100 })
    })
 
    // ── SALES REP ──
    const repY = infoY + 70
-   doc.font(BOLD).fontSize(8).fillColor(COLOR.black)
+   doc.font('IBMBold').fontSize(10).fillColor(COLOR.black)
       .text('SALES REP', col1, repY)
-   doc.font(BODY).fontSize(9).fillColor(COLOR.black)
-      .text(order.client?.email || '—', col1, repY + 14)
+   doc.font('HelvItalic').fontSize(10).fillColor(COLOR.black)
+      .text((order.client?.email || 'WELLINGTON').toUpperCase(), col1, repY + 14)
 
    // Thin gray separator before table
-   const sepY = repY + 32
+   const sepY = repY + 36
    doc.moveTo(PL, sepY).lineTo(PR, sepY)
       .strokeColor(COLOR.lineGray).lineWidth(0.3).stroke()
 
    // ═══════════════════════════════════════════
    // ── TABLE ──
    // ═══════════════════════════════════════════
-   const tableTop = sepY + 8
-   const headerH = 22
+   const tableTop = sepY + 10
+   const headerH = 18
 
    // Column layout
    const cols = {
-      qty: { x: PL, w: 55 },
-      item: { x: PL + 55, w: 115 },
-      desc: { x: PL + 170, w: CW - 170 - 75 - 80 },
-      rate: { x: PR - 155, w: 75 },
-      amount: { x: PR - 80, w: 80 },
+      qty: { x: PL, w: 50 },
+      item: { x: PL + 50, w: 120 },
+      desc: { x: PL + 170, w: CW - 170 - 70 - 70 },
+      rate: { x: PR - 140, w: 70, align: 'right' },
+      amount: { x: PR - 70, w: 70, align: 'right' },
    }
 
    // ── Draw table header row ──
@@ -191,13 +188,9 @@ const generateInvoice = (order, stream) => {
       doc.rect(PL, yPos, CW, headerH).fill(COLOR.lightRed)
 
       headers.forEach(([label, col]) => {
-         doc.font(BODY).fontSize(7).fillColor(COLOR.red)
-            .text(label, col.x + 4, yPos + 6, { width: col.w - 8 })
+         doc.font('HelvItalic').fontSize(9).fillColor(COLOR.red)
+            .text(label, col.x + 4, yPos + 5, { width: col.w - 8, align: col.align || 'left' })
       })
-
-      // Bottom border under header
-      doc.moveTo(PL, yPos + headerH).lineTo(PR, yPos + headerH)
-         .strokeColor(COLOR.lineGray).lineWidth(0.3).stroke()
 
       return yPos + headerH
    }
@@ -249,7 +242,7 @@ const generateInvoice = (order, stream) => {
             const subtotal = (item.weightLb || 0) * (item.pricePerLb || 0)
             grandTotal += subtotal
             rows.push({
-               qty: `${item.quantity} cxs`,
+               qty: `${item.quantity}`,
                item: prodName,
                desc: prodType,
                rate: fmtNum(item.pricePerLb || 0),
@@ -271,12 +264,10 @@ const generateInvoice = (order, stream) => {
 
    // ── Render rows with dynamic height & pagination ──
    for (const row of rows) {
-      // Calculate row height based on description text
-      doc.font('HelvItalic').fontSize(8)
+      doc.font('HelvItalic').fontSize(10)
       const descHeight = doc.heightOfString((row.desc || '—').toUpperCase(), { width: cols.desc.w - 8 })
-      const rowH = Math.max(22, descHeight + 12) // min 22, pad 6 top + 6 bottom
+      const rowH = Math.max(18, descHeight + 10)
 
-      // Check page overflow — leave room for at least this row + footer
       if (y + rowH > PAGE_BOTTOM) {
          doc.addPage()
          drawHeader()
@@ -285,36 +276,27 @@ const generateInvoice = (order, stream) => {
          tableStartY = newTableY
       }
 
-      // Alternate background
-      if (rowIndex % 2 === 1) {
-         doc.rect(PL, y, CW, rowH).fill('#f5f5f5')
-      }
-
-      const cellY = y + 6
+      const cellY = y + 5
 
       // QTY
-      doc.font('HelvItalic').fontSize(8).fillColor(COLOR.black)
-         .text(String(row.qty).toUpperCase(), cols.qty.x + 4, cellY, { width: cols.qty.w - 8 })
+      doc.font('HelvItalic').fontSize(10).fillColor(COLOR.black)
+         .text(String(row.qty).toUpperCase(), cols.qty.x + 4, cellY, { width: cols.qty.w - 8, align: cols.qty.align || 'left' })
 
-      // ITEM (product name — IBM bold)
-      doc.font('IBMBold').fontSize(8).fillColor(COLOR.black)
-         .text(String(row.item).toUpperCase(), cols.item.x + 4, cellY, { width: cols.item.w - 8 })
+      // ITEM
+      doc.font('IBMBold').fontSize(10).fillColor(COLOR.black)
+         .text(String(row.item).toUpperCase(), cols.item.x + 4, cellY, { width: cols.item.w - 8, align: cols.item.align || 'left' })
 
-      // DESCRIPTION (multi-line — HelvItalic uppercase)
-      doc.font('HelvItalic').fontSize(8).fillColor(COLOR.black)
+      // DESCRIPTION
+      doc.font('HelvItalic').fontSize(10).fillColor(COLOR.black)
          .text((row.desc || '—').toUpperCase(), cols.desc.x + 4, cellY, { width: cols.desc.w - 8 })
 
       // RATE
-      doc.font('HelvItalic').fontSize(8).fillColor(COLOR.black)
-         .text(String(row.rate).toUpperCase(), cols.rate.x + 4, cellY, { width: cols.rate.w - 8, align: 'right' })
+      doc.font('HelvItalic').fontSize(10).fillColor(COLOR.black)
+         .text(String(row.rate).toUpperCase(), cols.rate.x + 4, cellY, { width: cols.rate.w - 8, align: cols.rate.align || 'right' })
 
       // AMOUNT
-      doc.font('HelvItalic').fontSize(8).fillColor(COLOR.black)
-         .text(String(row.amount).toUpperCase(), cols.amount.x + 4, cellY, { width: cols.amount.w - 8, align: 'right' })
-
-      // Bottom border
-      doc.moveTo(PL, y + rowH).lineTo(PR, y + rowH)
-         .strokeColor(COLOR.lineGray).lineWidth(0.3).stroke()
+      doc.font('HelvItalic').fontSize(10).fillColor(COLOR.black)
+         .text(String(row.amount).toUpperCase(), cols.amount.x + 4, cellY, { width: cols.amount.w - 8, align: cols.amount.align || 'right' })
 
       y += rowH
       rowIndex++
@@ -322,63 +304,61 @@ const generateInvoice = (order, stream) => {
 
    // ═══════════════════════════════════════════
    // ── BALANCE DUE + FOOTER ──
-   // ═══════════════════════════════════════════
-   // Footer layout (always drawn top-to-bottom to avoid PDFKit auto-pagination):
-   //   balY   → Balance Due (right) + NSF Fee (left)
-   //   balY+35 → Signatures
-   //   pageH-40 → separator line
-   //   pageH-30 → Sales Tax cert text
-   //   pageH-18 → Zelle
    const balW = 200
-
    const footerFits = (y + 14 + FOOTER_BLOCK_H) <= doc.page.height - 40
-   let balY
-
-   if (footerFits) {
-      balY = y + 14
-   } else {
+   let balY = footerFits ? y + 25 : (() => {
       doc.addPage()
       drawHeader()
-      balY = 125
-   }
+      return 125
+   })()
 
    const pageH = doc.page.height
 
-   // ── Balance Due (right) + NSF Fee (left) — same row ──
-   doc.font('HelvItalic').fontSize(10).fillColor(COLOR.black)
-      .text('BALANCE DUE', PR - balW, balY, { width: balW - 90, align: 'right' })
-   doc.font('HelvItalic').fontSize(14).fillColor(COLOR.black)
-      .text(fmt(grandTotal).toUpperCase(), PR - 85, balY - 2, { width: 85, align: 'right' })
+   // Dotted line before footer
+   const dottedY = balY - 10
+   doc.moveTo(PL, dottedY).lineTo(PR, dottedY)
+      .dash(2, { space: 2 }).strokeColor(COLOR.lineGray).lineWidth(0.7).stroke().undash()
 
-   doc.font('HelvItalic').fontSize(6).fillColor(COLOR.black)
-      .text('NSF Fee: $25/$30/$40 or 5% of check, per FL law.', PL, balY)
-   doc.font('HelvItalic').fontSize(6).fillColor(COLOR.black)
-      .text(
-         '*PRODUCT RETURNS ONLY AT DELIVERY / DEVOLUCIONES\n' +
-         'SOLO AL MOMENTO DE LA ENTREGA / DEVOLUÇÕES SOMENTE\n' +
-         'NO ATO DA ENTREGA',
-         PL, balY + 10
-      )
+   // ── Balance Due (right) + NSF Fee (left) — same row ──
+   doc.font('HelvItalic').fontSize(11).fillColor(COLOR.black)
+      .text('BALANCE DUE', PR - balW, balY, { width: balW - 90, align: 'right' })
+   doc.font('IBMBold').fontSize(15).fillColor(COLOR.black)
+      .text(fmt(grandTotal), PR - 85, balY - 3, { width: 85, align: 'right' })
+
+   doc.font('HelvItalic').fontSize(7).fillColor(COLOR.black)
+      .text('NSF Fee: $25/$30/$40 or 5% of check, per FL law.\n!!!PRODUCT RETURNS ONLY AT DELIVERY | DEVOLUCIONES SOLO AL MOMENTO DE LA ENTREGA | DEVOLUCOES SOMENTE NO ATO DA ENTREGA', PL, balY, { width: PR - PL - balW - 20, lineGap: 3 })
 
    // ── Signature fields ──
-   const lineLen = 180
-   const sigY = balY + 52
+   const lineLen = 140
+   const sigY = balY + 45
 
    doc.font('HelvItalic').fontSize(8).fillColor(COLOR.black)
-      .text('Print name:', PL, sigY)
-   doc.moveTo(PL + 58, sigY + 10).lineTo(PL + 58 + lineLen, sigY + 10)
-      .strokeColor(COLOR.black).lineWidth(0.5).stroke()
+      .text('Print name', PL, sigY)
+   doc.moveTo(PL + 46, sigY + 8).lineTo(PL + 46 + lineLen, sigY + 8)
+      .strokeColor(COLOR.lightGray).lineWidth(0.5).stroke()
 
-   doc.font('HelvItalic').fontSize(8).fillColor(COLOR.black)
-      .text('Date:  ____/____/____', PL, sigY + 22)
+   doc.text('Date', PL, sigY + 22)
+   doc.moveTo(PL + 22, sigY + 30).lineTo(PL + 22 + 30, sigY + 30)
+      .strokeColor(COLOR.lightGray).lineWidth(0.5).stroke()
+   doc.text('/', PL + 54, sigY + 22)
+   doc.moveTo(PL + 59, sigY + 30).lineTo(PL + 59 + 30, sigY + 30)
+      .strokeColor(COLOR.lightGray).lineWidth(0.5).stroke()
+   doc.text('/', PL + 91, sigY + 22)
+   doc.moveTo(PL + 96, sigY + 30).lineTo(PL + 96 + 40, sigY + 30)
+      .strokeColor(COLOR.lightGray).lineWidth(0.5).stroke()
 
-   doc.font('HelvItalic').fontSize(8).fillColor(COLOR.black)
-      .text('Please, sign:', PL, sigY + 44)
-   doc.moveTo(PL + 70, sigY + 54).lineTo(PL + 70 + lineLen, sigY + 54)
-      .strokeColor(COLOR.black).lineWidth(0.5).stroke()
+   doc.text('Please, sign:', PL, sigY + 44)
+   doc.moveTo(PL + 50, sigY + 52).lineTo(PL + 50 + lineLen, sigY + 52)
+      .strokeColor(COLOR.lightGray).lineWidth(0.5).stroke()
 
-   // ── Bottom bar — drawn sequentially to avoid PDFKit auto-pagination ──
-   const certY = pageH - 70
+   // ── Pay Invoice Button ──
+   doc.roundedRect(PL, sigY + 68, 75, 20, 3)
+      .strokeColor(COLOR.black).lineWidth(0.6).stroke()
+   doc.font('HelvItalic').fontSize(9).fillColor(COLOR.black)
+      .text('Pay invoice', PL, sigY + 74, { width: 75, align: 'center' })
+
+   // ── Bottom bar ──
+   const certY = pageH - 45
 
    doc.font('HelvItalic').fontSize(6.5).fillColor(COLOR.black)
       .text(

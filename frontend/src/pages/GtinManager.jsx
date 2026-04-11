@@ -76,10 +76,7 @@ const GtinManager = () => {
   }
 
   const filteredProducts = productSearch.length >= 2
-    ? products.filter(p =>
-        p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
-        p.type.toLowerCase().includes(productSearch.toLowerCase())
-      )
+    ? products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()))
     : products
 
   return (
@@ -155,7 +152,6 @@ const GtinManager = () => {
                     }`}
                 >
                   <span>{p.name}</span>
-                  <span className="text-xs text-secondary ml-2">{p.type}</span>
                 </button>
               ))
             )}
@@ -196,16 +192,14 @@ const GtinManager = () => {
           </div>
         ) : (
           <div className="bg-surface border border-border rounded-md overflow-hidden shadow-card">
-            <div className="hidden sm:grid grid-cols-[1fr_1fr_120px] gap-2 px-5 py-2.5 text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-muted border-b border-border">
+            <div className="hidden sm:grid grid-cols-[1fr_1fr] gap-2 px-5 py-2.5 text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-muted border-b border-border">
               <span>GTIN</span>
               <span>Produto</span>
-              <span>Categoria</span>
             </div>
             {mappings.map(m => (
-              <div key={m.id} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_120px] gap-1 sm:gap-2 px-5 py-3 border-b border-border last:border-b-0 hover:bg-hover transition-colors">
+              <div key={m.id} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr] gap-1 sm:gap-2 px-5 py-3 border-b border-border last:border-b-0 hover:bg-hover transition-colors">
                 <span className="text-xs font-mono text-secondary">{m.gtin}</span>
                 <span className="text-sm font-medium text-primary">{m.product?.name || '—'}</span>
-                <span className="text-xs text-secondary">{m.product?.type || '—'}</span>
               </div>
             ))}
           </div>

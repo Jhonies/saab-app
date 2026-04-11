@@ -113,22 +113,43 @@ const IconLogout = () => (
   </svg>
 )
 
-const NAV_ITEMS = [
-  { key: 'dashboard', label: 'Painel',     Icon: IconHome,    path: '/admin/dashboard' },
-  { key: 'inventory', label: 'Estoque',        Icon: IconInventory, path: '/admin/inventory' },
-  { key: 'stock',     label: 'Estoque Geral',  Icon: IconInventory, path: '/admin/stock' },
-  { key: 'orders',    label: 'Pedidos',   Icon: IconOrders,    path: '/admin/orders/new' },
-  { key: 'logistics', label: 'Logística', Icon: IconLogistics, path: '/admin/logistics' },
-  { key: 'routes',    label: 'Rotas',     Icon: IconRoutes,    path: '/admin/routes' },
-  { key: 'clients', label: 'Clientes', Icon: IconClient, path: '/admin/clients' },
-  { key: 'users',       label: 'Utilizadores', Icon: IconUsers,      path: '/admin/users' },
-  { key: 'gtin',        label: 'GTINs',       Icon: IconGtin,       path: '/admin/gtin' },
-  { key: 'notices',  label: 'Avisos',   Icon: IconNotices, path: '/admin/notices' },
+const NAV_GROUPS = [
+  {
+    title: null,
+    items: [
+      { key: 'dashboard', label: 'Painel', Icon: IconHome, path: '/admin/dashboard' },
+    ]
+  },
+  {
+    title: 'Estoque',
+    items: [
+      { key: 'products',  label: 'Produtos',      Icon: IconProducts,  path: '/admin/products' },
+      { key: 'inventory', label: 'Locais',        Icon: IconInventory, path: '/admin/inventory' },
+      { key: 'stock',     label: 'Visão Geral',   Icon: IconInventory, path: '/admin/stock' },
+      { key: 'gtin',      label: 'GTINs',         Icon: IconGtin,      path: '/admin/gtin' },
+    ]
+  },
+  {
+    title: 'Operacional',
+    items: [
+      { key: 'orders',    label: 'Pedidos',   Icon: IconOrders,    path: '/admin/orders/new' },
+      { key: 'logistics', label: 'Logística', Icon: IconLogistics, path: '/admin/logistics' },
+      { key: 'routes',    label: 'Rotas',     Icon: IconRoutes,    path: '/admin/routes' },
+    ]
+  },
+  {
+    title: 'Administração',
+    items: [
+      { key: 'clients', label: 'Clientes',     Icon: IconClient,  path: '/admin/clients' },
+      { key: 'users',   label: 'Utilizadores', Icon: IconUsers,   path: '/admin/users' },
+      { key: 'notices', label: 'Avisos',       Icon: IconNotices, path: '/admin/notices' },
+    ]
+  }
 ]
 
 const PAGE_TITLES = {
   dashboard: 'Painel de Controle',
-  inventory: 'Estoque',
+  inventory: 'Locais de Estoque',
   stock:     'Estoque Geral',
   products:  'Produtos',
   orders:    'Pedidos',
@@ -338,26 +359,37 @@ const AdminDashboard = () => {
           <p className="text-[0.625rem] font-bold uppercase tracking-[0.2em] text-secondary m-0 md:mt-2 hidden md:block">Gestão Logística</p>
         </div>
 
-        <nav className="flex-1 flex flex-col gap-0.5 py-4 px-0 overflow-x-visible">
-          {NAV_ITEMS.map(({ key, label, Icon, path }) => (
-            <button
-              key={key}
-              className={`flex items-center gap-3 px-5 py-3 text-sm font-medium text-primary cursor-pointer bg-transparent
-                border-0 border-l-[3px] border-transparent w-full text-left
-                transition-colors duration-150
-                hover:bg-sidebar-hover hover:text-nav-hover hover:border-l-border-input
-                ${activeKey === key
-                  ? 'bg-sidebar-active text-primary !border-l-red'
-                  : ''
-                }`}
-              onClick={() => {
-                navigate(path)
-                setSidebarOpen(false)
-              }}
-            >
-              <Icon />
-              <span>{label}</span>
-            </button>
+        <nav className="flex-1 flex flex-col py-4 px-0 overflow-y-auto overflow-x-hidden">
+          {NAV_GROUPS.map((group, groupIdx) => (
+            <div key={groupIdx} className="mb-2 last:mb-0">
+              {group.title && (
+                <p className="px-6 py-2 text-[0.625rem] font-bold uppercase tracking-[0.16em] text-muted m-0">
+                  {group.title}
+                </p>
+              )}
+              <div className="flex flex-col gap-0.5">
+                {group.items.map(({ key, label, Icon, path }) => (
+                  <button
+                    key={key}
+                    className={`flex items-center gap-3 px-6 py-3 text-[0.875rem] font-medium text-primary cursor-pointer bg-transparent
+                      border-0 border-l-[3px] border-transparent w-full text-left
+                      transition-colors duration-150
+                      hover:bg-sidebar-hover hover:text-nav-hover hover:border-l-border-input
+                      ${activeKey === key
+                        ? 'bg-sidebar-active text-primary !border-l-red'
+                        : ''
+                      }`}
+                    onClick={() => {
+                      navigate(path)
+                      setSidebarOpen(false)
+                    }}
+                  >
+                    <Icon />
+                    <span>{label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
 
