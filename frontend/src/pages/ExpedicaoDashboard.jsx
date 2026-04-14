@@ -5,10 +5,10 @@ import { fetchOrders } from '../services/orderService'
 import { STATUS_LABEL, STATUS_COLOR } from '../constants/status'
 
 const CARDS = [
-  { key: 'PENDING',    label: 'Pendentes',         color: '#b45309' },
-  { key: 'CONFIRMED',  label: 'A Confirmar',        color: '#888888' },
-  { key: 'SEPARATING', label: 'Em Separação',       color: '#4a4a4a' },
-  { key: 'READY',      label: 'Prontos para Carga', color: '#15803d' },
+  { key: 'PENDING',    label: 'Pendentes',         color: '#d97706' },
+  { key: 'CONFIRMED',  label: 'A Confirmar',        color: '#3b82f6' },
+  { key: 'SEPARATING', label: 'Em Separação',       color: '#8b5cf6' },
+  { key: 'READY',      label: 'Prontos para Carga', color: '#22c55e' },
 ]
 
 const ExpedicaoDashboard = () => {

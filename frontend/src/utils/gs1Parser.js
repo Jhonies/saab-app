@@ -51,19 +51,47 @@ const AI_DEFS = [
       return raw / Math.pow(10, decimals)
     },
   },
-  // AI 17 — Expiry date YYMMDD (6 digits fixed)
+  // AI 11, 13, 15, 17 — Dates YYMMDD (6 digits fixed)
+  // We extract them all as expiryDate for simplicity, or we can just extract them dynamically.
+  // We'll map them to appropriate fields.
+  {
+    ai: '11',
+    regex: /^11(\d{6})/,
+    field: 'productionDate',
+    parse: (m) => {
+      const yy = parseInt(m[1].slice(0, 2), 10); const mm = parseInt(m[1].slice(2, 4), 10); const dd = parseInt(m[1].slice(4, 6), 10);
+      const year = yy < 50 ? 2000 + yy : 1900 + yy; const day = dd === 0 ? new Date(year, mm, 0).getDate() : dd;
+      return new Date(year, mm - 1, day).toISOString().slice(0, 10);
+    },
+  },
+  {
+    ai: '13',
+    regex: /^13(\d{6})/,
+    field: 'packagingDate',
+    parse: (m) => {
+      const yy = parseInt(m[1].slice(0, 2), 10); const mm = parseInt(m[1].slice(2, 4), 10); const dd = parseInt(m[1].slice(4, 6), 10);
+      const year = yy < 50 ? 2000 + yy : 1900 + yy; const day = dd === 0 ? new Date(year, mm, 0).getDate() : dd;
+      return new Date(year, mm - 1, day).toISOString().slice(0, 10);
+    },
+  },
+  {
+    ai: '15',
+    regex: /^15(\d{6})/,
+    field: 'bestBeforeDate',
+    parse: (m) => {
+      const yy = parseInt(m[1].slice(0, 2), 10); const mm = parseInt(m[1].slice(2, 4), 10); const dd = parseInt(m[1].slice(4, 6), 10);
+      const year = yy < 50 ? 2000 + yy : 1900 + yy; const day = dd === 0 ? new Date(year, mm, 0).getDate() : dd;
+      return new Date(year, mm - 1, day).toISOString().slice(0, 10);
+    },
+  },
   {
     ai: '17',
     regex: /^17(\d{6})/,
     field: 'expiryDate',
     parse: (m) => {
-      const yy = parseInt(m[1].slice(0, 2), 10)
-      const mm = parseInt(m[1].slice(2, 4), 10)
-      const dd = parseInt(m[1].slice(4, 6), 10)
-      const year = yy < 50 ? 2000 + yy : 1900 + yy
-      // DD=00 means last day of month (GS1 convention)
-      const day = dd === 0 ? new Date(year, mm, 0).getDate() : dd
-      return new Date(year, mm - 1, day).toISOString().slice(0, 10)
+      const yy = parseInt(m[1].slice(0, 2), 10); const mm = parseInt(m[1].slice(2, 4), 10); const dd = parseInt(m[1].slice(4, 6), 10);
+      const year = yy < 50 ? 2000 + yy : 1900 + yy; const day = dd === 0 ? new Date(year, mm, 0).getDate() : dd;
+      return new Date(year, mm - 1, day).toISOString().slice(0, 10);
     },
   },
   // AI 10 — Batch/Lot (variable length, up to 20 alphanumeric)
@@ -71,6 +99,14 @@ const AI_DEFS = [
     ai: '10',
     regex: /^10([^\x1D]{1,20})/,
     field: 'batch',
+    parse: (m) => m[1],
+    variable: true,
+  },
+  // AI 21 — Serial Number (variable length, up to 20 alphanumeric)
+  {
+    ai: '21',
+    regex: /^21([^\x1D]{1,20})/,
+    field: 'serial',
     parse: (m) => m[1],
     variable: true,
   },

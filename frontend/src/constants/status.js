@@ -1,13 +1,13 @@
 /** Canonical order-status configuration — single source of truth */
 
 export const STATUS_CONFIG = {
-  PENDING:    { label: 'Pendente',      color: '#b45309', bg: '#b4530918' },
-  CONFIRMED:  { label: 'Confirmado',    color: '#a0a0a0', bg: '#a0a0a025' },
-  SEPARATING: { label: 'Em Separação',  color: '#4a4a4a', bg: '#4a4a4a18' },
-  READY:      { label: 'Pronto',        color: '#15803d', bg: '#15803d18' },
-  IN_TRANSIT: { label: 'Em Trânsito',   color: '#505050', bg: '#50505018' },
-  DELIVERED:  { label: 'Entregue',      color: '#15803d', bg: '#15803d18' },
-  CANCELLED:  { label: 'Cancelado',     color: '#f87171', bg: '#f8717118' },
+  PENDING:    { label: 'Pendente',      color: '#d97706', bg: '#d9770618' },
+  CONFIRMED:  { label: 'Confirmado',    color: '#3b82f6', bg: '#3b82f618' },
+  SEPARATING: { label: 'Em Separação',  color: '#8b5cf6', bg: '#8b5cf618' },
+  READY:      { label: 'Pronto',        color: '#22c55e', bg: '#22c55e18' },
+  IN_TRANSIT: { label: 'Em Trânsito',   color: '#0ea5e9', bg: '#0ea5e918' },
+  DELIVERED:  { label: 'Entregue',      color: '#10b981', bg: '#10b98118' },
+  CANCELLED:  { label: 'Cancelado',     color: '#ef4444', bg: '#ef444418' },
 }
 
 /** Just the labels  — handy for lightweight consumers */
