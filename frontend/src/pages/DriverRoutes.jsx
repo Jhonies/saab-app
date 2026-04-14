@@ -110,7 +110,7 @@ const RouteMap = ({ stops, depot }) => {
     <div className="bg-surface border border-border rounded-md overflow-hidden shadow-card">
       <div className="flex items-center justify-between px-5 py-3 border-b border-border">
         <p className="text-[0.6875rem] font-bold uppercase tracking-wider text-muted m-0">
-          Mapa da Rota — {stops.length} paragens
+          Mapa da Rota — {stops.length} paradas
         </p>
         <a
           href={buildGoogleMapsUrl(stops, depot)}
@@ -273,7 +273,7 @@ const DriverRoutes = () => {
           {/* Summary */}
           <div className="flex flex-wrap gap-4 bg-surface border border-border rounded-md px-5 py-4 shadow-card">
             <div className="flex flex-col gap-0.5">
-              <span className="text-[0.625rem] font-bold uppercase tracking-wider text-muted">Paragens</span>
+              <span className="text-[0.625rem] font-bold uppercase tracking-wider text-muted">Paradas</span>
               <span className="text-base font-bold text-primary">{route.stops.length}</span>
             </div>
             <div className="flex flex-col gap-0.5">
@@ -312,7 +312,7 @@ const DriverRoutes = () => {
           {/* Stops */}
           {route.stops.length === 0 ? (
             <div className="bg-surface border border-border rounded-md py-12 px-4 text-center text-muted text-sm">
-              {route.message ?? 'Sem paragens para hoje.'}
+              {route.message ?? 'Sem paradas para hoje.'}
             </div>
           ) : (
             <div className="flex flex-col bg-surface border border-border rounded-md overflow-hidden shadow-card">

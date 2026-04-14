@@ -119,8 +119,19 @@ const AI_DEFS = [
 export function parseGS1Barcode(rawString) {
   const result = { raw: rawString }
 
-  // Strip common scanner prefixes (]C1 for GS1-128)
-  let data = rawString.replace(/^\]C1/, '').replace(/^\]d2/, '')
+  // Strip common scanner prefixes (symbology identifiers)
+  //   ]C1 = GS1-128,  ]d2 = GS1 DataBar,  ]e0 = GS1 DataBar Expanded
+  //   ]I1 = GS1 Interleaved 2of5,  ]Q3 = GS1 QR/DataMatrix
+  let data = rawString.replace(/^\]\w\d/, '')
+
+  // ── Handle parenthesized AI format ──
+  // Some printers encode the barcode as plain Code 128 with parenthesized AIs
+  // in the actual data, e.g. "(01)90000000033301(10)122812(21)272477".
+  // We convert this to raw GS1 format by replacing each "(XX)" with GS + AI digits.
+  // The GS before each AI correctly terminates any preceding variable-length field.
+  if (/\(\d{2,4}\)/.test(data)) {
+    data = data.replace(/\((\d{2,4})\)/g, (_, ai) => GS + ai)
+  }
 
   let iterations = 0
   while (data.length > 0 && iterations < 20) {
@@ -155,6 +166,17 @@ export function parseGS1Barcode(rawString) {
       } else {
         break
       }
+    }
+  }
+
+  // ── Fallback: plain EAN-13, UPC-A, or GTIN-14 ──
+  // If the scanner read a simple retail barcode (not GS1-128) we still
+  // want to capture the GTIN.  EAN-13 = 13 digits, UPC-A = 12 digits,
+  // GTIN-14 = 14 digits.  Zero-pad to 14 digits for consistency.
+  if (!result.gtin) {
+    const stripped = rawString.replace(/^\]\w\d/, '').trim()
+    if (/^\d{12,14}$/.test(stripped)) {
+      result.gtin = stripped.padStart(14, '0')
     }
   }
 

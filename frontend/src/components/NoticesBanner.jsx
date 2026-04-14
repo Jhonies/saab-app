@@ -85,7 +85,10 @@ const NoticesBanner = () => {
             <p className="text-sm font-semibold text-primary m-0 mb-1">{notice.title}</p>
             <p className="text-[0.8125rem] text-secondary m-0 leading-relaxed whitespace-pre-wrap">{notice.body}</p>
             <p className="text-[0.625rem] text-muted m-0 mt-2">
-              {notice.createdBy?.name || notice.createdBy?.email || 'Sistema'}
+              Por: {notice.createdBy?.name || notice.createdBy?.email || 'Sistema'}
+              {notice.visibleTo?.length > 0 && (
+                <span> · Para: {notice.visibleTo.join(', ')}</span>
+              )}
               {notice.expiresAt && (
                 <span> · Expira {new Date(notice.expiresAt).toLocaleDateString('pt-BR')}</span>
               )}

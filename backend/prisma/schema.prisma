@@ -163,6 +163,7 @@ model Notice {
   body        String
   createdById Int
   createdBy   User      @relation("NoticeCreator", fields: [createdById], references: [id])
+  visibleTo   String[]  @default([])
   expiresAt   DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt

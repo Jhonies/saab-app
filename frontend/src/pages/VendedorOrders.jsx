@@ -27,7 +27,7 @@ const OrderMobileCard = ({ order }) => {
           {cfg.label}
         </span>
       </div>
-      <p className="text-[0.8125rem] text-primary m-0 overflow-hidden text-ellipsis whitespace-nowrap">{order.client?.email ?? '—'}</p>
+      <p className="text-[0.8125rem] text-primary m-0 overflow-hidden text-ellipsis whitespace-nowrap">{order.clientName || '—'}</p>
       <p className="text-[0.8rem] text-secondary m-0 overflow-hidden text-ellipsis whitespace-nowrap">{summariseItems(order.items)}</p>
       <div className="flex items-center justify-between gap-2 mt-1">
         <span className="text-xs text-muted">
@@ -93,7 +93,7 @@ const VendedorOrders = () => {
                   #{String(order.id).padStart(4, '0')}
                 </span>
                 <span className="text-[0.8125rem] text-primary overflow-hidden text-ellipsis whitespace-nowrap">
-                  {order.client?.email ?? '—'}
+                  {order.clientName || '—'}
                 </span>
                 <span className="text-[0.8125rem] text-secondary overflow-hidden text-ellipsis whitespace-nowrap max-lg:hidden">
                   {summariseItems(order.items)}

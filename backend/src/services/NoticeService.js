@@ -1,22 +1,33 @@
 const prisma = require('../lib/prisma')
 
-const createNotice = (title, body, expiresAt, userId) =>
+const createNotice = (title, body, expiresAt, visibleTo, userId) =>
   prisma.notice.create({
     data: {
       title: title.trim(),
       body: body.trim(),
       expiresAt: expiresAt ? new Date(expiresAt) : null,
+      visibleTo: Array.isArray(visibleTo) && visibleTo.length > 0 ? visibleTo : [],
       createdById: Number(userId),
     },
     include: { createdBy: { select: { id: true, name: true, email: true } } },
   })
 
-const listNotices = () =>
+const listNotices = (userRole) =>
   prisma.notice.findMany({
     where: {
-      OR: [
-        { expiresAt: null },
-        { expiresAt: { gt: new Date() } },
+      AND: [
+        {
+          OR: [
+            { expiresAt: null },
+            { expiresAt: { gt: new Date() } },
+          ],
+        },
+        {
+          OR: [
+            { visibleTo: { isEmpty: true } },
+            { visibleTo: { has: userRole } },
+          ],
+        },
       ],
     },
     orderBy: { createdAt: 'desc' },

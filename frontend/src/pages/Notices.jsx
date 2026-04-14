@@ -33,6 +33,9 @@ const timeUntil = (dateStr) => {
 const isNew = (dateStr) =>
   Date.now() - new Date(dateStr).getTime() < 24 * 60 * 60 * 1000
 
+const ROLES = ['ADMIN', 'EXPEDICAO', 'VENDEDOR', 'MOTORISTA']
+const ROLE_LABELS = { ADMIN: 'Admin', EXPEDICAO: 'Expedição', VENDEDOR: 'Vendedor', MOTORISTA: 'Motorista' }
+
 const Notices = () => {
   const { user } = useAuth()
   const canCreate = user?.role === 'ADMIN' || user?.role === 'EXPEDICAO'
@@ -40,7 +43,7 @@ const Notices = () => {
   const [notices, setNotices] = useState([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
-  const [form, setForm] = useState({ title: '', body: '', expiresAt: '' })
+  const [form, setForm] = useState({ title: '', body: '', expiresAt: '', visibleTo: [] })
   const [submitting, setSubmitting] = useState(false)
 
   const load = () => {
@@ -62,8 +65,9 @@ const Notices = () => {
         title: form.title.trim(),
         body: form.body.trim(),
         expiresAt: form.expiresAt || null,
+        visibleTo: form.visibleTo.length > 0 ? form.visibleTo : [],
       })
-      setForm({ title: '', body: '', expiresAt: '' })
+      setForm({ title: '', body: '', expiresAt: '', visibleTo: [] })
       setShowModal(false)
       load()
     } catch {
@@ -133,9 +137,17 @@ const Notices = () => {
                     <h3 className="text-sm font-bold text-primary m-0">{notice.title}</h3>
                   </div>
                   <p className="text-sm text-primary leading-relaxed m-0 whitespace-pre-wrap">{notice.body}</p>
-                  <div className="flex items-center gap-3 mt-3 text-[0.6875rem] text-secondary">
-                    <span>{notice.createdBy?.name || notice.createdBy?.email || 'Sistema'}</span>
+                  <div className="flex items-center gap-3 mt-3 text-[0.6875rem] text-secondary flex-wrap">
+                    <span>Por: {notice.createdBy?.name || notice.createdBy?.email || 'Sistema'}</span>
                     <span>{timeAgo(notice.createdAt)} atras</span>
+                    {notice.visibleTo?.length > 0 && (
+                      <span className="text-info">
+                        Para: {notice.visibleTo.map(r => ROLE_LABELS[r] || r).join(', ')}
+                      </span>
+                    )}
+                    {(!notice.visibleTo || notice.visibleTo.length === 0) && (
+                      <span className="text-info">Para: Todos</span>
+                    )}
                     {notice.expiresAt && (
                       <span className="text-warn">
                         {timeUntil(notice.expiresAt) || 'Expirado'}
@@ -191,6 +203,30 @@ const Notices = () => {
                 placeholder="Descreva o aviso..."
                 required
               />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold uppercase tracking-wider text-secondary">
+                Visivel para <span className="font-normal text-secondary">(vazio = todos)</span>
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {ROLES.map(role => (
+                  <label key={role} className="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={form.visibleTo.includes(role)}
+                      onChange={() => setForm(f => ({
+                        ...f,
+                        visibleTo: f.visibleTo.includes(role)
+                          ? f.visibleTo.filter(r => r !== role)
+                          : [...f.visibleTo, role],
+                      }))}
+                      className="accent-[var(--red-base)]"
+                    />
+                    <span className="text-sm text-primary">{ROLE_LABELS[role]}</span>
+                  </label>
+                ))}
+              </div>
             </div>
 
             <div className="flex flex-col gap-1.5">

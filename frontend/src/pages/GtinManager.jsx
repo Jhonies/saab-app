@@ -119,8 +119,8 @@ const GtinManager = () => {
           {/* Scan info */}
           {scannedInfo && scannedGtin && (
             <div className="flex flex-wrap gap-3 text-xs text-secondary mt-1">
-              {scannedInfo.weightLb != null && <span>Peso: {scannedInfo.weightLb} lbs</span>}
-              {scannedInfo.weightKg != null && <span>Peso: {scannedInfo.weightKg} kg</span>}
+              {scannedInfo.weightLb != null && <span>Peso: {Number(scannedInfo.weightLb).toFixed(2)} lbs</span>}
+              {scannedInfo.weightKg != null && <span>Peso: {Number(scannedInfo.weightKg).toFixed(2)} kg</span>}
               {scannedInfo.expiryDate && <span>Validade: {scannedInfo.expiryDate}</span>}
               {scannedInfo.batch && <span>Lote: {scannedInfo.batch}</span>}
             </div>

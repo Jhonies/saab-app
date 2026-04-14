@@ -1,18 +1,18 @@
 const NoticeService = require('../services/NoticeService')
 
 const createNotice = async (req, res) => {
-  const { title, body, expiresAt } = req.body
+  const { title, body, expiresAt, visibleTo } = req.body
 
   if (!title?.trim() || !body?.trim()) {
     return res.status(400).json({ message: 'Título e corpo são obrigatórios.' })
   }
 
-  const notice = await NoticeService.createNotice(title, body, expiresAt, req.user.sub)
+  const notice = await NoticeService.createNotice(title, body, expiresAt, visibleTo, req.user.sub)
   return res.status(201).json(notice)
 }
 
-const listNotices = async (_req, res) => {
-  const notices = await NoticeService.listNotices()
+const listNotices = async (req, res) => {
+  const notices = await NoticeService.listNotices(req.user.role)
   return res.json(notices)
 }
 

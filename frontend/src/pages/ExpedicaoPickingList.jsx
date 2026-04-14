@@ -115,7 +115,7 @@ const ExpedicaoPickingList = () => {
       setScanError('')
     } catch {
       // GTIN not mapped yet — offer to register
-      setScanError(`GTIN ${parsed.gtin} nao mapeado. Peso lido: ${parsed.weightLb ?? '—'} lbs`)
+      setScanError(`GTIN ${parsed.gtin} nao mapeado. Peso lido: ${parsed.weightLb != null ? Number(parsed.weightLb).toFixed(2) : '—'} lbs`)
       // Still fill the weight if available
       if (scanTarget && parsed.weightLb != null) {
         setBoxWeight(scanTarget.itemId, scanTarget.boxNum, String(parsed.weightLb))
@@ -302,7 +302,7 @@ const ExpedicaoPickingList = () => {
                 {item.boxWeights?.map(bw => (
                   <div key={bw.id} className="flex items-center gap-3">
                     <span className="text-xs font-semibold text-secondary min-w-[80px]">Cx {bw.boxNumber}</span>
-                    <span className="text-[0.8125rem] text-primary">{bw.weightLb} lbs</span>
+                    <span className="text-[0.8125rem] text-primary">{Number(bw.weightLb).toFixed(2)} lbs</span>
                   </div>
                 ))}
                 <div className="text-[0.8125rem] font-bold text-primary text-right pt-1 border-t border-border">
@@ -437,7 +437,7 @@ const ExpedicaoPickingList = () => {
             <p className="text-sm text-primary m-0">Produto: <strong>{scanResult.productName}</strong></p>
           )}
           {scanResult.gtin && <p className="text-xs text-secondary m-0">GTIN: {scanResult.gtin}</p>}
-          {scanResult.weightLb != null && <p className="text-xs text-secondary m-0">Peso: {scanResult.weightLb} lbs</p>}
+          {scanResult.weightLb != null && <p className="text-xs text-secondary m-0">Peso: {Number(scanResult.weightLb).toFixed(2)} lbs</p>}
           {scanResult.expiryDate && <p className="text-xs text-secondary m-0">Validade: {scanResult.expiryDate}</p>}
           {scanResult.batch && <p className="text-xs text-secondary m-0">Lote: {scanResult.batch}</p>}
           {scanError && (
