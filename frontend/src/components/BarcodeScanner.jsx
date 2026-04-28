@@ -159,12 +159,12 @@ const BarcodeScanner = ({ onScan, onClose }) => {
           </div>
         )}
 
-        {/* Video feed */}
-        <div className="relative aspect-[4/3] bg-black">
+        {/* Video feed — portrait em mobile, landscape em desktop. Camera continua a capturar 1920x1080 (não afeta GTIN) */}
+        <div className="relative aspect-[3/4] sm:aspect-[4/3] bg-black">
           <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
-          {/* Scan line overlay */}
+          {/* Scan line overlay (horizontal, barcodes lineares) */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-[70%] h-0.5 bg-red/60 animate-pulse" />
+            <div className="w-[80%] h-0.5 bg-red/60 animate-pulse" />
           </div>
         </div>
 
