@@ -2,6 +2,7 @@ const prisma = require('../lib/prisma')
 
 const INCLUDE_FULL = {
   client: { select: { id: true, email: true } },
+  driver: { select: { id: true, name: true, email: true } },
   items:  {
     include: {
       product:    true,
@@ -13,6 +14,9 @@ const INCLUDE_FULL = {
 
 /* ── Depot fallback (Orlando, FL) ── */
 const DEFAULT_GEO = { address: '6843 Conway Rd Ste 120, Orlando, FL 32812', lat: 28.4626, lon: -81.3305 }
+
+/* ── Status que já consumiram stockGeneral (READY em diante, exceto CANCELLED) ── */
+const STOCK_DEDUCTED_STATUSES = new Set(['READY', 'IN_TRANSIT', 'DELIVERED'])
 
 /* ── Staleness guard — rejects updates whose timestamp predates the last status change ── */
 const assertNotStale = (order, clientTimestamp) => {
@@ -26,70 +30,109 @@ const assertNotStale = (order, clientTimestamp) => {
   }
 }
 
-/* ── Create ── */
-const createOrder = async ({ clientId, clientName, address: inputAddress, items, updatedById }) => {
+/* ── Validar driver: tem que existir e ter role MOTORISTA ── */
+const assertValidDriver = async (tx, driverId) => {
+  if (driverId == null) return
+  const driver = await tx.user.findUnique({ where: { id: Number(driverId) } })
+  if (!driver) {
+    throw Object.assign(new Error('Motorista não encontrado.'), { status: 404 })
+  }
+  if (driver.role !== 'MOTORISTA') {
+    throw Object.assign(new Error('Utilizador atribuído não tem role MOTORISTA.'), { status: 400 })
+  }
+}
+
+/* ── Create ──
+ * Validação de stock: agrega quantidade pedida por productId e compara com Product.stockGeneral.
+ * Não desconta stockGeneral nem Container.quantity na criação — desconto acontece em packOrder (READY).
+ * Containers são apenas referência inicial (primeiro container do produto); expedição faz baixa manual depois.
+ */
+const createOrder = async ({ clientId, clientName, address: inputAddress, deliveryType, route, driverId, items, updatedById }) => {
   return prisma.$transaction(async (tx) => {
+    const isPickup = deliveryType === 'PICKUP'
+
+    if (!isPickup) {
+      await assertValidDriver(tx, driverId)
+    }
+
+    /* Agregar quantidade total por produto (caso o pedido tenha o mesmo produto duas vezes) */
+    const qtyByProduct = new Map()
+    for (const it of items) {
+      qtyByProduct.set(it.productId, (qtyByProduct.get(it.productId) || 0) + it.quantity)
+    }
+
+    /* Validar stockGeneral por produto */
+    const productIds = [...qtyByProduct.keys()]
+    const products = await tx.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, name: true, stockGeneral: true },
+    })
+    const productMap = new Map(products.map(p => [p.id, p]))
+
+    for (const [productId, requested] of qtyByProduct.entries()) {
+      const product = productMap.get(productId)
+      if (!product) {
+        throw Object.assign(new Error(`Produto #${productId} não encontrado.`), { status: 404 })
+      }
+      if (product.stockGeneral < requested) {
+        throw Object.assign(
+          new Error(`Stock insuficiente para ${product.name}. Disponível: ${product.stockGeneral} cxs. Solicitado: ${requested} cxs.`),
+          { status: 422 }
+        )
+      }
+    }
+
+    /* Resolver container de referência (primeiro container do produto, se existir) */
     const itemsToCreate = []
     let totalBoxes = 0
 
     for (const item of items) {
-      const containers = await tx.container.findMany({
-        where: { productId: item.productId },
+      const refContainer = await tx.container.findFirst({
+        where:   { productId: item.productId },
         orderBy: { label: 'asc' },
       })
 
-      const totalAvailable = containers.reduce((s, c) => s + c.quantity, 0)
-
-      if (totalAvailable < item.quantity) {
-        const productName = containers[0]?.product?.name ?? `#${item.productId}`
+      if (!refContainer) {
         throw Object.assign(
-          new Error(`Stock insuficiente para produto ${productName}. Disponível: ${totalAvailable} cxs. Solicitado: ${item.quantity} cxs.`),
+          new Error(`Produto #${item.productId} não tem container associado.`),
           { status: 422 }
         )
       }
 
-      let remaining = item.quantity
-      for (const container of containers) {
-        if (remaining <= 0) break
-        const take = Math.min(remaining, container.quantity)
-        if (take <= 0) continue
-
-        await tx.container.update({
-          where: { id: container.id },
-          data:  { quantity: { decrement: take }, updatedById },
-        })
-
-        itemsToCreate.push({
-          containerId: container.id,
-          productId:   item.productId,
-          quantity:    take,
-          priceType:   item.priceType || 'PER_LB',
-          pricePerLb:  item.pricePerLb ?? null,
-          pricePerBox: item.pricePerBox ?? null,
-        })
-
-        remaining -= take
-      }
+      itemsToCreate.push({
+        containerId: refContainer.id,
+        productId:   item.productId,
+        quantity:    item.quantity,
+        priceType:   item.priceType || 'PER_LB',
+        pricePerLb:  item.pricePerLb ?? null,
+        pricePerBox: item.pricePerBox ?? null,
+      })
 
       totalBoxes += item.quantity
     }
 
-    // Resolve endereço: usa o fornecido no pedido, ou busca do cadastro do cliente, ou usa default
-    let address = DEFAULT_GEO.address
-    let lat = DEFAULT_GEO.lat
-    let lon = DEFAULT_GEO.lon
+    /* Resolver endereço (apenas se DELIVERY; PICKUP fica vazio) */
+    let address = ''
+    let lat = null
+    let lon = null
 
-    if (inputAddress) {
-      address = inputAddress
-    } else if (clientId) {
-      const client = await tx.user.findUnique({
-        where:  { id: clientId },
-        select: { address: true, lat: true, lon: true },
-      })
-      if (client) {
-        address = client.address || address
-        lat = client.lat ?? lat
-        lon = client.lon ?? lon
+    if (!isPickup) {
+      address = DEFAULT_GEO.address
+      lat = DEFAULT_GEO.lat
+      lon = DEFAULT_GEO.lon
+
+      if (inputAddress) {
+        address = inputAddress
+      } else if (clientId) {
+        const client = await tx.user.findUnique({
+          where:  { id: clientId },
+          select: { address: true, lat: true, lon: true },
+        })
+        if (client) {
+          address = client.address || address
+          lat = client.lat ?? lat
+          lon = client.lon ?? lon
+        }
       }
     }
 
@@ -97,13 +140,16 @@ const createOrder = async ({ clientId, clientName, address: inputAddress, items,
       data: {
         clientId,
         clientName,
-        status:     'PENDING',
+        status:       'PENDING',
+        deliveryType: isPickup ? 'PICKUP' : 'DELIVERY',
+        route:        isPickup ? null : (route || null),
+        driverId:     isPickup ? null : (driverId ?? null),
         totalBoxes,
         address,
         lat,
         lon,
         updatedById,
-        items:      { create: itemsToCreate },
+        items:        { create: itemsToCreate },
       },
       include: INCLUDE_FULL,
     })
@@ -131,7 +177,10 @@ const getOrderById = (id) =>
     include: INCLUDE_FULL,
   })
 
-/* ── Deliver ── */
+/* ── Deliver ──
+ * DELIVERY: exige IN_TRANSIT.
+ * PICKUP: aceita READY (cliente retira diretamente).
+ */
 const deliverOrder = async (id, { deliveredById, lastStatusAt: clientTs } = {}) => {
   return prisma.$transaction(async (tx) => {
     const order = await tx.order.findUnique({ where: { id: Number(id) } })
@@ -142,9 +191,12 @@ const deliverOrder = async (id, { deliveredById, lastStatusAt: clientTs } = {}) 
 
     assertNotStale(order, clientTs)
 
-    if (order.status !== 'IN_TRANSIT') {
+    const isPickup = order.deliveryType === 'PICKUP'
+    const expected = isPickup ? 'READY' : 'IN_TRANSIT'
+
+    if (order.status !== expected) {
       throw Object.assign(
-        new Error(`Pedido só pode ser entregue com status IN_TRANSIT. Status atual: "${order.status}".`),
+        new Error(`Pedido ${isPickup ? 'de retirada' : ''} só pode ser entregue com status ${expected}. Status atual: "${order.status}".`),
         { status: 422 }
       )
     }
@@ -194,7 +246,11 @@ const confirmOrder = async (id, userId, { lastStatusAt: clientTs } = {}) => {
   })
 }
 
-/* ── Cancel (PENDING | CONFIRMED → CANCELLED) ── */
+/* ── Cancel ──
+ * Se pedido já estava em READY/IN_TRANSIT (já tinha consumido stockGeneral), devolver stock.
+ * Antes de READY: nada a fazer (não houve desconto na criação).
+ * Container.quantity nunca é tocado (baixa manual pela expedição).
+ */
 const cancelOrder = async (id, userId, { lastStatusAt: clientTs } = {}) => {
   return prisma.$transaction(async (tx) => {
     const order = await tx.order.findUnique({
@@ -219,15 +275,17 @@ const cancelOrder = async (id, userId, { lastStatusAt: clientTs } = {}) => {
       throw Object.assign(new Error('Pedido já está cancelado.'), { status: 400 })
     }
 
-    // Devolver stock aos containers
-    for (const item of order.items) {
-      await tx.container.update({
-        where: { id: item.containerId },
-        data:  {
-          quantity:    { increment: item.quantity },
-          updatedById: userId ? Number(userId) : undefined,
-        },
-      })
+    if (STOCK_DEDUCTED_STATUSES.has(order.status)) {
+      const qtyByProduct = new Map()
+      for (const it of order.items) {
+        qtyByProduct.set(it.productId, (qtyByProduct.get(it.productId) || 0) + it.quantity)
+      }
+      for (const [productId, qty] of qtyByProduct.entries()) {
+        await tx.product.update({
+          where: { id: productId },
+          data:  { stockGeneral: { increment: qty } },
+        })
+      }
     }
 
     const now = new Date()
@@ -264,7 +322,10 @@ const separateOrder = async (id, userId, { lastStatusAt: clientTs } = {}) => {
   })
 }
 
-/* ── Pack (SEPARATING → READY) ── */
+/* ── Pack (SEPARATING → READY) ──
+ * Desconta Product.stockGeneral neste momento (baixa automática do estoque geral).
+ * Container.quantity NÃO é tocado — expedição faz baixa manual posteriormente.
+ */
 const packOrder = async (id, userId, itemWeights, { lastStatusAt: clientTs } = {}) => {
   return prisma.$transaction(async (tx) => {
     const order = await tx.order.findUnique({
@@ -329,6 +390,18 @@ const packOrder = async (id, userId, itemWeights, { lastStatusAt: clientTs } = {
     const updatedItems = await tx.orderItem.findMany({ where: { orderId: Number(id) } })
     const finalWeightLb = updatedItems.reduce((s, i) => s + Number(i.weightLb), 0)
 
+    // Baixa automática do estoque geral (agregado por produto)
+    const qtyByProduct = new Map()
+    for (const it of order.items) {
+      qtyByProduct.set(it.productId, (qtyByProduct.get(it.productId) || 0) + it.quantity)
+    }
+    for (const [productId, qty] of qtyByProduct.entries()) {
+      await tx.product.update({
+        where: { id: productId },
+        data:  { stockGeneral: { decrement: qty } },
+      })
+    }
+
     return tx.order.update({
       where: { id: Number(id) },
       data:  {
@@ -344,7 +417,9 @@ const packOrder = async (id, userId, itemWeights, { lastStatusAt: clientTs } = {
   })
 }
 
-/* ── Load (READY → IN_TRANSIT) ── */
+/* ── Load (READY → IN_TRANSIT) ──
+ * Apenas DELIVERY. Pedidos PICKUP não passam por IN_TRANSIT.
+ */
 const loadOrder = async (id, userId, { lastStatusAt: clientTs } = {}) => {
   const order = await prisma.order.findUnique({ where: { id: Number(id) } })
 
@@ -353,6 +428,13 @@ const loadOrder = async (id, userId, { lastStatusAt: clientTs } = {}) => {
   }
 
   assertNotStale(order, clientTs)
+
+  if (order.deliveryType === 'PICKUP') {
+    throw Object.assign(
+      new Error('Pedidos de retirada (PICKUP) não devem ser carregados — usar fluxo de entrega direta.'),
+      { status: 409 }
+    )
+  }
 
   if (order.status !== 'READY') {
     throw Object.assign(
@@ -369,6 +451,38 @@ const loadOrder = async (id, userId, { lastStatusAt: clientTs } = {}) => {
   })
 }
 
+/* ── Reassign route/driver (admin) ──
+ * Permite editar route e driverId. Só faz sentido para DELIVERY.
+ */
+const reassignRoute = async (id, { route, driverId }, userId) => {
+  return prisma.$transaction(async (tx) => {
+    const order = await tx.order.findUnique({ where: { id: Number(id) } })
+    if (!order) {
+      throw Object.assign(new Error('Pedido não encontrado.'), { status: 404 })
+    }
+    if (order.deliveryType === 'PICKUP') {
+      throw Object.assign(
+        new Error('Pedidos de retirada não têm rota nem motorista.'),
+        { status: 400 }
+      )
+    }
+
+    if (driverId !== undefined && driverId !== null) {
+      await assertValidDriver(tx, driverId)
+    }
+
+    const data = { updatedById: Number(userId) }
+    if (route !== undefined)    data.route    = route || null
+    if (driverId !== undefined) data.driverId = driverId ?? null
+
+    return tx.order.update({
+      where: { id: Number(id) },
+      data,
+      include: INCLUDE_FULL,
+    })
+  })
+}
+
 module.exports = {
   createOrder,
   listOrders,
@@ -379,4 +493,5 @@ module.exports = {
   separateOrder,
   packOrder,
   loadOrder,
+  reassignRoute,
 }

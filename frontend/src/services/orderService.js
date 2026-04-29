@@ -13,6 +13,9 @@ export const packOrder     = (id, itemWeights, lastStatusAt) => api.patch(`/orde
 export const loadOrder     = (id, lastStatusAt) => api.patch(`/orders/${id}/load`, { lastStatusAt }).then(r => r.data)
 export const deliverOrder  = (id, lastStatusAt) => api.patch(`/orders/${id}/deliver`, { lastStatusAt }).then(r => r.data)
 
+export const reassignOrderRoute = (id, { route, driverId }) =>
+  api.patch(`/orders/${id}/route`, { route, driverId }).then(r => r.data)
+
 export const openInvoice = async (orderId) => {
   const res  = await api.get(`/orders/${orderId}/invoice`, { responseType: 'blob' })
   const blob = new Blob([res.data], { type: 'application/pdf' })

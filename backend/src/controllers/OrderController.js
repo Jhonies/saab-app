@@ -1,7 +1,7 @@
 const OrderService   = require('../services/OrderService')
 const ClientService  = require('../services/ClientService')
 const InvoiceService = require('../services/InvoiceService')
-const { createOrderSchema, packOrderSchema, updateStatusSchema } = require('../lib/schemas')
+const { createOrderSchema, packOrderSchema, updateStatusSchema, reassignRouteSchema } = require('../lib/schemas')
 
 /* ── Create ── */
 const createOrder = async (req, res) => {
@@ -11,15 +11,18 @@ const createOrder = async (req, res) => {
     return res.status(400).json({ message: msg })
   }
 
-  const { clientId, clientName, address, items } = parsed.data
+  const { clientId, clientName, address, items, deliveryType, route, driverId } = parsed.data
 
   try {
     const order = await OrderService.createOrder({
-      clientId:   clientId ?? null,
-      clientName: clientName?.trim() || '',
-      address:    address?.trim() || null,
+      clientId:     clientId ?? null,
+      clientName:   clientName?.trim() || '',
+      address:      address?.trim() || null,
+      deliveryType: deliveryType || 'DELIVERY',
+      route:        route?.trim() || null,
+      driverId:     driverId ?? null,
       items,
-      updatedById: req.user.sub,
+      updatedById:  req.user.sub,
     })
     return res.status(201).json(order)
   } catch (err) {
@@ -125,6 +128,22 @@ const loadOrder = async (req, res) => {
   }
 }
 
+/* ── Reassign route/driver ── */
+const reassignRoute = async (req, res) => {
+  const parsed = reassignRouteSchema.safeParse(req.body)
+  if (!parsed.success) {
+    const msg = parsed.error.issues.map(i => i.message).join('; ')
+    return res.status(400).json({ message: msg })
+  }
+
+  try {
+    const order = await OrderService.reassignRoute(req.params.id, parsed.data, req.user.sub)
+    return res.json(order)
+  } catch (err) {
+    return res.status(err.status || 500).json({ message: err.message })
+  }
+}
+
 /* ── Invoice ── */
 const getInvoice = async (req, res) => {
   const order = await OrderService.getOrderById(req.params.id)
@@ -152,4 +171,5 @@ module.exports = {
   separateOrder,
   packOrder,
   loadOrder,
+  reassignRoute,
 }

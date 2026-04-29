@@ -80,16 +80,24 @@ const formatETA = (minutes) => {
 /**
  * Devolve a rota diária com pedidos prontos para entrega
  * (READY, IN_TRANSIT) ou pendentes de processamento (PENDING, CONFIRMED).
+ *
+ * Exclui pedidos PICKUP (não há rota a calcular).
+ * Se driverId for fornecido (MOTORISTA), filtra apenas pedidos atribuídos a esse motorista.
  */
-const getDailyRoute = async () => {
+const getDailyRoute = async ({ driverId = null } = {}) => {
+  const where = {
+    status: { in: ['PENDING', 'CONFIRMED', 'SEPARATING', 'READY', 'IN_TRANSIT'] },
+    deliveryType: 'DELIVERY',
+    lat:    { not: null },
+    lon:    { not: null },
+  }
+  if (driverId) where.driverId = Number(driverId)
+
   const orders = await prisma.order.findMany({
-    where: {
-      status: { in: ['PENDING', 'CONFIRMED', 'SEPARATING', 'READY', 'IN_TRANSIT'] },
-      lat:    { not: null },
-      lon:    { not: null },
-    },
+    where,
     include: {
       client: { select: { id: true, email: true } },
+      driver: { select: { id: true, name: true, email: true } },
       items:  { include: { product: true } },
     },
   })
@@ -99,9 +107,19 @@ const getDailyRoute = async () => {
   }
 
   const route = buildRoute(orders)
+  const orderById = new Map(orders.map(o => [o.id, o]))
 
-  // Enriquece com ETA formatada
-  route.stops = route.stops.map(s => ({ ...s, eta: formatETA(s.etaMinutes) }))
+  // Enriquece com ETA formatada e dados do pedido
+  route.stops = route.stops.map(s => {
+    const o = orderById.get(s.orderId)
+    return {
+      ...s,
+      eta:        formatETA(s.etaMinutes),
+      route:      o?.route ?? null,
+      driver:     o?.driver ?? null,
+      clientName: o?.clientName ?? null,
+    }
+  })
 
   return route
 }

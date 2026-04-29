@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
-import { fetchOrders, openInvoice, updateOrderStatus, deliverOrder } from '../services/orderService'
+import { fetchOrders, openInvoice, updateOrderStatus, deliverOrder, reassignOrderRoute } from '../services/orderService'
+import { fetchDrivers } from '../services/userService'
 
 /* ────────────────────────────────────────
    Mock de endereços e coordenadas
@@ -148,12 +149,91 @@ const RouteModal = ({ order, onClose }) => {
   )
 }
 
+/* ── ReassignModal: editar rota + motorista ── */
+const ReassignModal = ({ order, drivers, onClose, onSaved }) => {
+  const [route,    setRoute]    = useState(order.route ?? '')
+  const [driverId, setDriverId] = useState(order.driverId ? String(order.driverId) : '')
+  const [saving,   setSaving]   = useState(false)
+  const [err,      setErr]      = useState('')
+
+  const handleSave = async () => {
+    setSaving(true)
+    setErr('')
+    try {
+      const updated = await reassignOrderRoute(order.id, {
+        route:    route.trim() || null,
+        driverId: driverId ? Number(driverId) : null,
+      })
+      onSaved(updated)
+    } catch (e) {
+      setErr(e.response?.data?.message ?? 'Erro ao guardar.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleOverlayClick = (e) => {
+    if (e.target === e.currentTarget && !saving) onClose()
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-4" onClick={handleOverlayClick}>
+      <div className="bg-surface border border-border rounded-lg w-full max-w-[420px] flex flex-col overflow-hidden shadow-elevated">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
+          <h2 className="text-[0.9rem] font-bold text-primary m-0">Reatribuir — Pedido #{order.id}</h2>
+          <button className="bg-transparent border-none text-muted cursor-pointer p-1 rounded flex items-center transition-colors hover:text-primary" onClick={onClose} aria-label="Fechar">
+            <IconClose />
+          </button>
+        </div>
+
+        <div className="px-5 py-5 flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-secondary">Rota</label>
+            <input
+              type="text"
+              className="bg-input border border-border-input rounded text-sm text-primary outline-none w-full py-2.5 px-3.5 placeholder:text-muted focus:border-red focus:ring-2 focus:ring-red/20"
+              placeholder="ex: Orlando 2 ou Miami-Orlando-Jax"
+              value={route}
+              onChange={e => setRoute(e.target.value)}
+              disabled={saving}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-secondary">Motorista</label>
+            <select
+              className="bg-input border border-border-input rounded text-sm text-primary outline-none w-full py-2.5 px-3.5 focus:border-red focus:ring-2 focus:ring-red/20"
+              value={driverId}
+              onChange={e => setDriverId(e.target.value)}
+              disabled={saving}
+            >
+              <option value="">— Sem motorista —</option>
+              {drivers.map(d => (
+                <option key={d.id} value={d.id}>{d.name?.trim() || d.email}</option>
+              ))}
+            </select>
+          </div>
+          {err && <p className="text-[0.8125rem] text-error bg-error-bg border border-[rgba(139,0,0,0.25)] rounded px-3.5 py-2.5 m-0">{err}</p>}
+        </div>
+
+        <div className="flex gap-2 justify-end px-5 py-4 border-t border-border">
+          <button className="bg-transparent border border-border-input rounded px-4 py-2 text-[0.8125rem] font-semibold text-secondary cursor-pointer hover:text-primary disabled:opacity-40" onClick={onClose} disabled={saving}>Cancelar</button>
+          <button className="bg-red border-none rounded px-4 py-2 text-[0.8125rem] font-bold uppercase tracking-[0.05em] text-on-red cursor-pointer hover:bg-red-h disabled:opacity-40 disabled:cursor-not-allowed" onClick={handleSave} disabled={saving}>
+            {saving ? 'A guardar…' : 'Guardar'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /* ── Mobile order card ── */
-const OrderMobileCard = ({ order, clientLabel, geo, onMap, onInvoice, onConfirm, onCancel, onDeliver }) => {
+const OrderMobileCard = ({ order, clientLabel, geo, onMap, onInvoice, onConfirm, onCancel, onDeliver, onReassign }) => {
   const status = order.status ?? 'PENDING'
   const weight = order.weightLb && order.weightLb > 0
     ? `${Number(order.weightLb).toFixed(1)} lbs`
     : null
+  const isPickup = order.deliveryType === 'PICKUP'
+  const driverLabel = order.driver?.name?.trim() || order.driver?.email || null
 
   const routeBtnBase = 'inline-flex items-center gap-1.5 bg-transparent border border-border rounded px-3 py-1.5 text-xs font-semibold text-secondary cursor-pointer whitespace-nowrap transition-colors [&_svg]:w-3.5 [&_svg]:h-3.5'
 
@@ -161,22 +241,41 @@ const OrderMobileCard = ({ order, clientLabel, geo, onMap, onInvoice, onConfirm,
     <div className="bg-page border border-border rounded-md p-4 flex flex-col gap-2">
       <div className="flex items-center justify-between gap-2">
         <span className="font-mono text-[0.8125rem] font-bold text-secondary">#{order.id}</span>
-        <span className={`inline-flex items-center gap-1 text-[0.6875rem] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full whitespace-nowrap ${BADGE_CLASSES[status] ?? ''}`}>
-          <span className="w-1.5 h-1.5 rounded-full bg-current" />
-          {STATUS_LABEL[status] ?? status}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span className={`inline-flex items-center text-[0.625rem] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${isPickup ? 'bg-warn-bg text-warn' : 'bg-info-bg text-info'}`}>
+            {isPickup ? 'Retirada' : 'Entrega'}
+          </span>
+          <span className={`inline-flex items-center gap-1 text-[0.6875rem] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full whitespace-nowrap ${BADGE_CLASSES[status] ?? ''}`}>
+            <span className="w-1.5 h-1.5 rounded-full bg-current" />
+            {STATUS_LABEL[status] ?? status}
+          </span>
+        </div>
       </div>
       <p className="text-[0.8125rem] font-semibold text-primary m-0">{clientLabel}</p>
-      <p className="text-[0.8rem] text-secondary m-0">{geo.address}</p>
+      {!isPickup && <p className="text-[0.8rem] text-secondary m-0">{geo.address}</p>}
+      {!isPickup && (order.route || driverLabel) && (
+        <p className="text-[0.7rem] text-muted m-0">
+          {order.route && <span>Rota: {order.route}</span>}
+          {order.route && driverLabel && <span> · </span>}
+          {driverLabel && <span>{driverLabel}</span>}
+        </p>
+      )}
       <div className="flex gap-3 text-xs text-muted">
         <span>{order.totalBoxes} cxs</span>
         {weight && <span>{weight}</span>}
         <span>{new Date(order.createdAt).toLocaleDateString('pt-PT')}</span>
       </div>
       <div className="flex gap-2 flex-wrap mt-1">
-        <button className={routeBtnBase} onClick={onMap}>
-          <IconMap /> Rota
-        </button>
+        {!isPickup && (
+          <button className={routeBtnBase} onClick={onMap}>
+            <IconMap /> Rota
+          </button>
+        )}
+        {!isPickup && ['PENDING', 'CONFIRMED', 'SEPARATING', 'READY'].includes(order.status) && (
+          <button className={routeBtnBase} onClick={onReassign}>
+            Reatribuir
+          </button>
+        )}
         {order.status !== 'PENDING' && (
           <button className={`${routeBtnBase} hover:border-error hover:text-error`} onClick={onInvoice}>
             <IconPdf /> Invoice
@@ -194,7 +293,7 @@ const OrderMobileCard = ({ order, clientLabel, geo, onMap, onInvoice, onConfirm,
         )}
         {order.status !== 'DELIVERED' && order.status !== 'CANCELLED' && (
           <button className={`${routeBtnBase} hover:border-ok hover:text-ok`} onClick={onDeliver}>
-            <IconSign /> Entregar
+            <IconSign /> {isPickup ? 'Retirado' : 'Entregar'}
           </button>
         )}
       </div>
@@ -204,11 +303,13 @@ const OrderMobileCard = ({ order, clientLabel, geo, onMap, onInvoice, onConfirm,
 
 /* ── Logistics ── */
 const Logistics = () => {
-  const [orders,    setOrders]    = useState([])
-  const [loading,   setLoading]   = useState(true)
-  const [error,     setError]     = useState('')
-  const [activeMap, setActiveMap] = useState(null)
-  const [filter,    setFilter]    = useState('ALL')
+  const [orders,         setOrders]         = useState([])
+  const [drivers,        setDrivers]        = useState([])
+  const [loading,        setLoading]        = useState(true)
+  const [error,          setError]          = useState('')
+  const [activeMap,      setActiveMap]      = useState(null)
+  const [activeReassign, setActiveReassign] = useState(null)
+  const [filter,         setFilter]         = useState('ALL')
 
   const handleStatusChange = async (orderId, status) => {
     const order = orders.find(o => o.id === orderId)
@@ -232,8 +333,8 @@ const Logistics = () => {
   }
 
   useEffect(() => {
-    fetchOrders()
-      .then(setOrders)
+    Promise.all([fetchOrders(), fetchDrivers().catch(() => [])])
+      .then(([os, drvs]) => { setOrders(os); setDrivers(drvs) })
       .catch(() => setError('Erro ao carregar pedidos.'))
       .finally(() => setLoading(false))
   }, [])
@@ -302,7 +403,7 @@ const Logistics = () => {
           <table className="w-full border-collapse text-[0.8125rem]">
             <thead className="bg-hover border-b border-border">
               <tr>
-                {['ID', 'Cliente', 'Endereço', 'Total (cxs)', 'Peso (lbs)', 'Status', 'Data', 'Ações'].map(h => (
+                {['ID', 'Cliente', 'Tipo', 'Rota', 'Motorista', 'Endereço', 'Total (cxs)', 'Peso (lbs)', 'Status', 'Data', 'Ações'].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-[0.6875rem] font-bold uppercase tracking-wider text-secondary whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -310,19 +411,19 @@ const Logistics = () => {
             <tbody>
               {loading && (
                 <tr>
-                  <td colSpan={8} className="text-center py-12 px-4 text-muted">A carregar pedidos…</td>
+                  <td colSpan={11} className="text-center py-12 px-4 text-muted">A carregar pedidos…</td>
                 </tr>
               )}
 
               {!loading && error && (
                 <tr>
-                  <td colSpan={8} className="text-center py-12 px-4 text-error">{error}</td>
+                  <td colSpan={11} className="text-center py-12 px-4 text-error">{error}</td>
                 </tr>
               )}
 
               {!loading && !error && visible.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="text-center py-12 px-4 text-muted">
+                  <td colSpan={11} className="text-center py-12 px-4 text-muted">
                     {orders.length === 0 ? 'Nenhum pedido registado.' : 'Nenhum pedido com este filtro.'}
                   </td>
                 </tr>
@@ -341,11 +442,21 @@ const Logistics = () => {
                   ? `${Number(order.weightLb).toFixed(1)} lbs`
                   : '—'
 
+                const isPickup = order.deliveryType === 'PICKUP'
+                const driverLabel = order.driver?.name?.trim() || order.driver?.email || '—'
+
                 return (
                   <tr key={order.id} className="group">
                     <td className="px-4 py-3.5 text-primary border-b border-border align-middle group-last:border-b-0 group-hover:bg-hover">#{order.id}</td>
                     <td className="px-4 py-3.5 text-primary border-b border-border align-middle group-last:border-b-0 group-hover:bg-hover">{clientLabel}</td>
-                    <td className="px-4 py-3.5 text-primary border-b border-border align-middle group-last:border-b-0 group-hover:bg-hover">{geo.address}</td>
+                    <td className="px-4 py-3.5 border-b border-border align-middle group-last:border-b-0 group-hover:bg-hover">
+                      <span className={`inline-flex items-center gap-1 text-[0.6875rem] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${isPickup ? 'bg-warn-bg text-warn' : 'bg-info-bg text-info'}`}>
+                        {isPickup ? 'Retirada' : 'Entrega'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3.5 text-primary border-b border-border align-middle group-last:border-b-0 group-hover:bg-hover">{isPickup ? '—' : (order.route || '—')}</td>
+                    <td className="px-4 py-3.5 text-primary border-b border-border align-middle group-last:border-b-0 group-hover:bg-hover">{isPickup ? '—' : driverLabel}</td>
+                    <td className="px-4 py-3.5 text-primary border-b border-border align-middle group-last:border-b-0 group-hover:bg-hover">{isPickup ? '—' : geo.address}</td>
                     <td className="px-4 py-3.5 text-primary border-b border-border align-middle group-last:border-b-0 group-hover:bg-hover">{order.totalBoxes}</td>
                     <td className="px-4 py-3.5 text-primary border-b border-border align-middle group-last:border-b-0 group-hover:bg-hover">{weightDisplay}</td>
                     <td className="px-4 py-3.5 text-primary border-b border-border align-middle group-last:border-b-0 group-hover:bg-hover">
@@ -357,13 +468,24 @@ const Logistics = () => {
                     <td className="px-4 py-3.5 text-primary border-b border-border align-middle group-last:border-b-0 group-hover:bg-hover">{dateDisplay}</td>
                     <td className="px-4 py-3.5 text-primary border-b border-border align-middle group-last:border-b-0 group-hover:bg-hover">
                       <div className="flex gap-2 flex-wrap">
-                        <button
-                          className={`${routeBtnBase} hover:border-info hover:text-info`}
-                          onClick={() => setActiveMap(order)}
-                        >
-                          <IconMap />
-                          Rota
-                        </button>
+                        {!isPickup && (
+                          <button
+                            className={`${routeBtnBase} hover:border-info hover:text-info`}
+                            onClick={() => setActiveMap(order)}
+                          >
+                            <IconMap />
+                            Rota
+                          </button>
+                        )}
+                        {!isPickup && ['PENDING', 'CONFIRMED', 'SEPARATING', 'READY'].includes(order.status) && (
+                          <button
+                            className={routeBtnBase}
+                            onClick={() => setActiveReassign(order)}
+                            title="Reatribuir rota / motorista"
+                          >
+                            Reatribuir
+                          </button>
+                        )}
                         {order.status !== 'PENDING' && (
                           <button
                             className={`${routeBtnBase} hover:border-error hover:text-error`}
@@ -395,7 +517,7 @@ const Logistics = () => {
                             onClick={() => handleDeliver(order.id)}
                           >
                             <IconSign />
-                            Entregar
+                            {isPickup ? 'Retirado' : 'Entregar'}
                           </button>
                         )}
                       </div>
@@ -430,6 +552,7 @@ const Logistics = () => {
                 onConfirm={() => handleStatusChange(order.id, 'CONFIRMED')}
                 onCancel={() => handleStatusChange(order.id, 'CANCELLED')}
                 onDeliver={() => handleDeliver(order.id)}
+                onReassign={() => setActiveReassign(order)}
               />
             )
           })}
@@ -438,6 +561,18 @@ const Logistics = () => {
 
       {activeMap && (
         <RouteModal order={activeMap} onClose={() => setActiveMap(null)} />
+      )}
+
+      {activeReassign && (
+        <ReassignModal
+          order={activeReassign}
+          drivers={drivers}
+          onClose={() => setActiveReassign(null)}
+          onSaved={(updated) => {
+            setOrders(prev => prev.map(o => o.id === updated.id ? updated : o))
+            setActiveReassign(null)
+          }}
+        />
       )}
 
     </div>

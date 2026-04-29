@@ -2,9 +2,12 @@ const { z } = require('zod')
 
 /* ── Create Order ── */
 const createOrderSchema = z.object({
-  clientId:   z.number().int().positive().nullish(),
-  clientName: z.string().min(1, 'clientName é obrigatório.').nullish(),
-  address:    z.string().nullish(),
+  clientId:     z.number().int().positive().nullish(),
+  clientName:   z.string().min(1, 'clientName é obrigatório.').nullish(),
+  address:      z.string().nullish(),
+  deliveryType: z.enum(['DELIVERY', 'PICKUP']).default('DELIVERY'),
+  route:        z.string().nullish(),
+  driverId:     z.number().int().positive().nullish(),
   items: z.array(z.object({
     productId:   z.number({ required_error: 'productId é obrigatório.' }).int().positive(),
     quantity:    z.number({ required_error: 'quantity é obrigatório.' }).int().positive('Quantidade deve ser um inteiro positivo.'),
@@ -16,6 +19,12 @@ const createOrderSchema = z.object({
   d => d.clientId || d.clientName,
   { message: 'clientId ou clientName é obrigatório.' }
 )
+
+/* ── Reassign Route/Driver ── */
+const reassignRouteSchema = z.object({
+  route:    z.string().nullish(),
+  driverId: z.number().int().positive().nullable().optional(),
+})
 
 /* ── Pack Order (itemWeights) ── */
 const boxWeightSchema = z.object({
@@ -45,4 +54,5 @@ module.exports = {
   createOrderSchema,
   packOrderSchema,
   updateStatusSchema,
+  reassignRouteSchema,
 }

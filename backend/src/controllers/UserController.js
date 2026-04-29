@@ -34,4 +34,14 @@ const updateUser = async (req, res) => {
   }
 }
 
-module.exports = { listUsers, createUser, updateUser }
+/* ── List drivers ── */
+const listDrivers = async (_req, res) => {
+  try {
+    const drivers = await UserService.listDrivers()
+    return res.json(drivers)
+  } catch (err) {
+    return res.status(err.status || 500).json({ message: err.message })
+  }
+}
+
+module.exports = { listUsers, createUser, updateUser, listDrivers }

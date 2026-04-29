@@ -161,8 +161,9 @@ project/
 ## Order Status Pipeline
 
 ```
-PENDING -> CONFIRMED -> SEPARATING -> READY -> IN_TRANSIT -> DELIVERED
-                 \-> CANCELLED (antes de DELIVERED)
+DELIVERY: PENDING -> CONFIRMED -> SEPARATING -> READY -> IN_TRANSIT -> DELIVERED
+PICKUP:   PENDING -> CONFIRMED -> SEPARATING -> READY ----------------> DELIVERED
+                          \-> CANCELLED (antes de DELIVERED)
 ```
 
 | Transition              | Who              | Endpoint                  |
@@ -170,9 +171,17 @@ PENDING -> CONFIRMED -> SEPARATING -> READY -> IN_TRANSIT -> DELIVERED
 | -> CONFIRMED            | Admin, Expedicao | PATCH /orders/:id/status  |
 | -> SEPARATING           | Admin, Expedicao | PATCH /orders/:id/separate|
 | -> READY                | Admin, Expedicao | PATCH /orders/:id/pack    |
-| -> IN_TRANSIT           | Motorista        | PATCH /orders/:id/load    |
-| -> DELIVERED            | Motorista        | PATCH /orders/:id/deliver |
+| -> IN_TRANSIT           | Motorista        | PATCH /orders/:id/load (apenas DELIVERY) |
+| -> DELIVERED (DELIVERY) | Motorista        | PATCH /orders/:id/deliver (exige IN_TRANSIT) |
+| -> DELIVERED (PICKUP)   | Admin, Motorista | PATCH /orders/:id/deliver (exige READY) |
 | -> CANCELLED            | Admin, Expedicao | PATCH /orders/:id/status  |
+| Reatribuir rota/motorista | Admin          | PATCH /orders/:id/route   |
+
+## Stock Flow (Estoque Geral vs por Local)
+
+- **`Product.stockGeneral`** (campo agregado): fonte da verdade contabil. Validado na criacao (sem desconto). **Baixa automatica em READY** (`packOrder`). Devolvido em CANCELLED se o pedido ja estava em READY/IN_TRANSIT/DELIVERED.
+- **`Container.quantity`** (estoque por local): **nunca tocado pelo sistema**. A expedicao decide manualmente de qual container retirou as caixas e ajusta `Container.quantity` via `PATCH /inventory/containers/:id`. Isto preserva a autonomia da expedicao (ex: 10 picanhas podem sair 5 do CT-32 + 5 do CT-33, ou 10 do mesmo).
+- **`OrderItem.containerId`**: armazena apenas um container de **referencia** (primeiro container do produto) — nao reflete necessariamente de onde a caixa foi tirada.
 
 ## API Endpoints
 
@@ -184,11 +193,12 @@ PENDING -> CONFIRMED -> SEPARATING -> READY -> IN_TRANSIT -> DELIVERED
 | GET    | `/users`    | Yes  | ADMIN  |
 
 ### Users (`/users`)
-| Method | Path        | Auth | Roles           |
-|--------|-------------|------|-----------------|
-| GET    | `/`         | Yes  | ADMIN           |
-| POST   | `/`         | Yes  | ADMIN           |
-| PATCH  | `/:id`      | Yes  | ADMIN           |
+| Method | Path        | Auth | Roles                       |
+|--------|-------------|------|------------------------------|
+| GET    | `/drivers`  | Yes  | ADMIN, VENDEDOR, EXPEDICAO  |
+| GET    | `/`         | Yes  | ADMIN                       |
+| POST   | `/`         | Yes  | ADMIN                       |
+| PATCH  | `/:id`      | Yes  | ADMIN                       |
 
 ### Clients (`/clients`)
 | Method | Path        | Auth | Roles           |
@@ -210,6 +220,7 @@ PENDING -> CONFIRMED -> SEPARATING -> READY -> IN_TRANSIT -> DELIVERED
 | PATCH  | `/:id/pack`      | Yes  | ADMIN, EXPEDICAO                   |
 | PATCH  | `/:id/load`      | Yes  | MOTORISTA                          |
 | PATCH  | `/:id/deliver`   | Yes  | ADMIN, MOTORISTA                   |
+| PATCH  | `/:id/route`     | Yes  | ADMIN                              |
 
 ### Inventory (`/inventory`)
 | Method | Path                  | Auth | Roles                    |
@@ -291,6 +302,7 @@ User         -> id, name, email, password, role (ADMIN|VENDEDOR|EXPEDICAO|MOTORI
                 address, lat?, lon?
 
 Product      -> id, name, type (texto livre), active,
+                stockGeneral (caixas — baixa em READY),
                 priceType (PER_LB|PER_BOX|PER_UNIT),
                 pricePerLb?, pricePerBox?, pricePerUnit?
 
@@ -300,6 +312,7 @@ Container    -> id, label, zone (enum ContainerZone), capacity, quantity, unit,
 Client       -> id, name, address  — modelo independente, sem ligacao a User
 
 Order        -> id, clientName (string), clientId? (legacy), status, totalBoxes, weightLb,
+                deliveryType (DELIVERY|PICKUP), route? (string livre), driverId? (FK User MOTORISTA),
                 address, lat/lon, deliveryWindowStart/End,
                 deliveredAt/By, separatedAt/By, packedAt/By, loadedAt,
                 updatedById?, lastStatusAt?

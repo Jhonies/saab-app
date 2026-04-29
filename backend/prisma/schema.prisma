@@ -9,18 +9,19 @@ datasource db {
 
 // Valores válidos: "ADMIN" | "EXPEDICAO" | "MOTORISTA" | "VENDEDOR"
 model User {
-  id        Int      @id @default(autoincrement())
-  name      String   @default("")        // Nome do cliente (opcional para staff)
-  email     String   @unique
-  password  String
-  role      String   @default("VENDEDOR")
-  address   String   @default("")
-  lat       Float?
-  lon       Float?
-  orders    Order[]
-  notices   Notice[]  @relation("NoticeCreator")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           Int      @id @default(autoincrement())
+  name         String   @default("")        // Nome do cliente (opcional para staff)
+  email        String   @unique
+  password     String
+  role         String   @default("VENDEDOR")
+  address      String   @default("")
+  lat          Float?
+  lon          Float?
+  orders       Order[]
+  driverOrders Order[]   @relation("OrderDriver")
+  notices      Notice[]  @relation("NoticeCreator")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model Product {
@@ -28,6 +29,9 @@ model Product {
   name       String
   type       String      // categoria livre: "Bovino", "Bebidas", "Acessórios", etc.
   active     Boolean     @default(true)
+  // Estoque geral (caixas) — fonte da verdade contábil; baixa automática em READY.
+  // Containers continuam com baixa MANUAL pela expedição (estoque por local).
+  stockGeneral Int       @default(0)
   // Preços padrão
   priceType   String      @default("PER_LB")  // "PER_LB" | "PER_BOX" | "PER_UNIT"
   pricePerLb   Decimal? @db.Decimal(10, 4)      // preço por libra
@@ -88,7 +92,13 @@ model Order {
   clientName          String       @default("")          // nome da loja (vendedor digita)
   status              String      @default("PENDING")
   totalBoxes          Int
-  // Entrega
+  // Entrega vs Retirada
+  deliveryType        String      @default("DELIVERY")  // "DELIVERY" | "PICKUP"
+  // Rota/Motorista (apenas DELIVERY)
+  route               String?                                  // ex: "Miami-Orlando-Jacksonville", "Orlando 2"
+  driverId            Int?
+  driver              User?        @relation("OrderDriver", fields: [driverId], references: [id])
+  // Endereço de entrega (apenas DELIVERY)
   address             String      @default("")
   lat                 Float?
   lon                 Float?
@@ -114,6 +124,7 @@ model Order {
 
   @@index([status])
   @@index([clientId])
+  @@index([driverId])
   @@index([createdAt])
   @@index([status, createdAt])
 }

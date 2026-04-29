@@ -17,6 +17,21 @@
 
 const GS = '\x1D' // Group Separator — FNC1 delimiter
 
+// Parse YYMMDD into ISO date, returning null if MM or DD is out of range.
+// GS1 spec allows DD=00 to mean "last day of the month".
+const parseGs1Date = (digits) => {
+  const yy = parseInt(digits.slice(0, 2), 10)
+  const mm = parseInt(digits.slice(2, 4), 10)
+  const dd = parseInt(digits.slice(4, 6), 10)
+  if (mm < 1 || mm > 12) return null
+  if (dd < 0 || dd > 31) return null
+  const year = yy < 50 ? 2000 + yy : 1900 + yy
+  const day = dd === 0 ? new Date(year, mm, 0).getDate() : dd
+  const date = new Date(year, mm - 1, day)
+  if (date.getMonth() !== mm - 1) return null // calendar overflow (e.g. Feb 30)
+  return date.toISOString().slice(0, 10)
+}
+
 /**
  * AI definitions: [regex, fieldName, parser, fixedLength?]
  * Fixed-length AIs don't need a GS terminator.
@@ -52,49 +67,21 @@ const AI_DEFS = [
     },
   },
   // AI 11, 13, 15, 17 — Dates YYMMDD (6 digits fixed)
-  // We extract them all as expiryDate for simplicity, or we can just extract them dynamically.
-  // We'll map them to appropriate fields.
+  { ai: '11', regex: /^11(\d{6})/, field: 'productionDate', parse: (m) => parseGs1Date(m[1]) },
+  { ai: '13', regex: /^13(\d{6})/, field: 'packagingDate',  parse: (m) => parseGs1Date(m[1]) },
+  { ai: '15', regex: /^15(\d{6})/, field: 'bestBeforeDate', parse: (m) => parseGs1Date(m[1]) },
+  { ai: '17', regex: /^17(\d{6})/, field: 'expiryDate',     parse: (m) => parseGs1Date(m[1]) },
+  // AI 7003 — Expiration date and time YYMMDDHHMM (10 digits fixed)
   {
-    ai: '11',
-    regex: /^11(\d{6})/,
-    field: 'productionDate',
-    parse: (m) => {
-      const yy = parseInt(m[1].slice(0, 2), 10); const mm = parseInt(m[1].slice(2, 4), 10); const dd = parseInt(m[1].slice(4, 6), 10);
-      const year = yy < 50 ? 2000 + yy : 1900 + yy; const day = dd === 0 ? new Date(year, mm, 0).getDate() : dd;
-      return new Date(year, mm - 1, day).toISOString().slice(0, 10);
-    },
+    ai: '7003',
+    regex: /^7003(\d{10})/,
+    field: 'expiryDateTime',
+    parse: (m) => parseGs1Date(m[1].slice(0, 6)),
   },
-  {
-    ai: '13',
-    regex: /^13(\d{6})/,
-    field: 'packagingDate',
-    parse: (m) => {
-      const yy = parseInt(m[1].slice(0, 2), 10); const mm = parseInt(m[1].slice(2, 4), 10); const dd = parseInt(m[1].slice(4, 6), 10);
-      const year = yy < 50 ? 2000 + yy : 1900 + yy; const day = dd === 0 ? new Date(year, mm, 0).getDate() : dd;
-      return new Date(year, mm - 1, day).toISOString().slice(0, 10);
-    },
-  },
-  {
-    ai: '15',
-    regex: /^15(\d{6})/,
-    field: 'bestBeforeDate',
-    parse: (m) => {
-      const yy = parseInt(m[1].slice(0, 2), 10); const mm = parseInt(m[1].slice(2, 4), 10); const dd = parseInt(m[1].slice(4, 6), 10);
-      const year = yy < 50 ? 2000 + yy : 1900 + yy; const day = dd === 0 ? new Date(year, mm, 0).getDate() : dd;
-      return new Date(year, mm - 1, day).toISOString().slice(0, 10);
-    },
-  },
-  {
-    ai: '17',
-    regex: /^17(\d{6})/,
-    field: 'expiryDate',
-    parse: (m) => {
-      const yy = parseInt(m[1].slice(0, 2), 10); const mm = parseInt(m[1].slice(2, 4), 10); const dd = parseInt(m[1].slice(4, 6), 10);
-      const year = yy < 50 ? 2000 + yy : 1900 + yy; const day = dd === 0 ? new Date(year, mm, 0).getDate() : dd;
-      return new Date(year, mm - 1, day).toISOString().slice(0, 10);
-    },
-  },
-  // AI 10 — Batch/Lot (variable length, up to 20 alphanumeric)
+  // AI 10 — Batch/Lot (variable length, up to 20 alphanumeric).
+  // Terminator is GS or end-of-string. Variable-length AIs without a GS
+  // separator are malformed by spec; we don't try to split them via lookahead
+  // because batch/serial values can contain digit patterns that look like AIs.
   {
     ai: '10',
     regex: /^10([^\x1D]{1,20})/,
@@ -111,6 +98,14 @@ const AI_DEFS = [
     variable: true,
   },
 ]
+
+// Length of fixed-length AIs (used to skip past unknown ones gracefully).
+// Maps AI prefix → total length (AI digits + data digits).
+const KNOWN_FIXED_LENGTHS = {
+  '00': 20, '01': 16, '02': 16,
+  '11': 8, '13': 8, '15': 8, '17': 8,
+  '20': 4,
+}
 
 /**
  * @param {string} rawString — raw barcode data from scanner
@@ -130,11 +125,11 @@ export function parseGS1Barcode(rawString) {
   // We convert this to raw GS1 format by replacing each "(XX)" with GS + AI digits.
   // The GS before each AI correctly terminates any preceding variable-length field.
   if (/\(\d{2,4}\)/.test(data)) {
-    data = data.replace(/\((\d{2,4})\)/g, (_, ai) => GS + ai)
+    data = data.replace(/\s+/g, '').replace(/\((\d{2,4})\)/g, (_, ai) => GS + ai)
   }
 
   let iterations = 0
-  while (data.length > 0 && iterations < 20) {
+  while (data.length > 0 && iterations < 30) {
     iterations++
 
     // Skip GS separators
@@ -147,7 +142,8 @@ export function parseGS1Barcode(rawString) {
     for (const def of AI_DEFS) {
       const m = data.match(def.regex)
       if (m) {
-        result[def.field] = def.parse(m)
+        const value = def.parse(m)
+        if (value !== null) result[def.field] = value
         data = data.slice(m[0].length)
         // If variable length, consume trailing GS if present
         if (def.variable && data[0] === GS) {
@@ -159,12 +155,23 @@ export function parseGS1Barcode(rawString) {
     }
 
     if (!matched) {
-      // Unknown AI — skip 2 chars (AI) and try to find next GS or end
+      // Unknown AI — try to skip past it gracefully.
+      // 1) If next 2 digits are a known fixed-length AI prefix, skip its full length.
+      // 2) Otherwise jump to the next GS separator if any.
+      // 3) Last resort: drop one char and keep trying (avoids losing data after
+      //    an unknown 4-digit AI like 7003 when no GS is present).
+      const prefix2 = data.slice(0, 2)
+      const prefix4 = data.slice(0, 4)
+      const skipLen = KNOWN_FIXED_LENGTHS[prefix4] || KNOWN_FIXED_LENGTHS[prefix2]
+      if (skipLen) {
+        data = data.slice(skipLen)
+        continue
+      }
       const gsIdx = data.indexOf(GS)
       if (gsIdx >= 0) {
         data = data.slice(gsIdx + 1)
       } else {
-        break
+        data = data.slice(1)
       }
     }
   }

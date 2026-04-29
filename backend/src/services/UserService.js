@@ -89,4 +89,11 @@ const updateUser = async (id, { name, email, password, role, address, lat, lon }
   })
 }
 
-module.exports = { listUsers, findByEmail, createUser, updateUser }
+const listDrivers = () =>
+  prisma.user.findMany({
+    where:   { role: 'MOTORISTA' },
+    select:  { id: true, name: true, email: true },
+    orderBy: { name: 'asc' },
+  })
+
+module.exports = { listUsers, findByEmail, createUser, updateUser, listDrivers }
