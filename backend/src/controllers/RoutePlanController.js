@@ -4,6 +4,7 @@ const { z } = require('zod')
 const createRouteSchema = z.object({
   name:         z.string().min(1, 'Nome é obrigatório.'),
   region:       z.string().nullish(),
+  truck:        z.string().min(1, 'Truck é obrigatório.'),
   driverId:     z.number().int().positive().nullish(),
   scheduledFor: z.string().nullish(),
   notes:        z.string().nullish(),
@@ -12,10 +13,15 @@ const createRouteSchema = z.object({
 const updateRouteSchema = z.object({
   name:         z.string().min(1).optional(),
   region:       z.string().nullish(),
+  truck:        z.string().min(1, 'Truck é obrigatório.').optional(),
   driverId:     z.number().int().positive().nullable().optional(),
   scheduledFor: z.string().nullable().optional(),
   notes:        z.string().nullish(),
   status:       z.enum(['DRAFT', 'READY', 'IN_TRANSIT', 'COMPLETED']).optional(),
+})
+
+const stopNotesSchema = z.object({
+  notes: z.string().max(500, 'Observação demasiado longa.').default(''),
 })
 
 const assignOrdersSchema = z.object({
@@ -99,6 +105,19 @@ const assignOrders = async (req, res) => {
   }
 }
 
+const updateStopNotes = async (req, res) => {
+  const parsed = stopNotesSchema.safeParse(req.body)
+  if (!parsed.success) {
+    return res.status(400).json({ message: parsed.error.issues.map(i => i.message).join('; ') })
+  }
+  try {
+    const route = await RoutePlanService.updateStopNotes(req.params.id, req.params.orderId, parsed.data.notes)
+    return res.json(route)
+  } catch (err) {
+    return res.status(err.status || 500).json({ message: err.message })
+  }
+}
+
 const reorderStops = async (req, res) => {
   const parsed = reorderStopsSchema.safeParse(req.body)
   if (!parsed.success) {
@@ -137,6 +156,7 @@ module.exports = {
   remove,
   assignOrders,
   reorderStops,
+  updateStopNotes,
   unassignOrder,
   listAssignableOrders,
 }

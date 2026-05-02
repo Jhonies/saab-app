@@ -104,17 +104,25 @@ const RouteCard = ({ route, onDeliver }) => {
       >
         <div className="flex flex-col gap-1 min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="text-base font-bold text-primary m-0">{route.name}</h3>
+            <h3 className="text-base font-bold text-primary m-0 uppercase">
+              {route.name}
+              {route.region && ` - ${route.region}`}
+              {route.scheduledFor && ` - ${new Date(route.scheduledFor).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' })}`}
+            </h3>
             <span className={`inline-flex items-center text-[0.625rem] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${STATUS_BADGE[route.status] ?? 'bg-hover text-secondary'}`}>
               {STATUS_LABEL[route.status] ?? route.status}
             </span>
           </div>
-          <p className="text-xs text-secondary m-0">
-            {route.orders.length} parada(s) · {totalBoxes} cxs
-            {route.region && <span> · Região: {route.region}</span>}
-            {route.scheduledFor && <span> · {new Date(route.scheduledFor).toLocaleDateString('pt-PT')}</span>}
+          <p className="text-xs text-secondary m-0 uppercase tracking-wide">
+            TRUCK: <strong className="text-primary">{route.truck || '—'}</strong>
           </p>
-          {route.notes && <p className="text-xs text-muted m-0 mt-0.5">{route.notes}</p>}
+          <p className="text-xs text-secondary m-0 uppercase tracking-wide">
+            DRIVER: <strong className="text-primary">{route.driver?.name || '—'}</strong>
+            {route.notes && <span className="text-muted normal-case tracking-normal"> ({route.notes})</span>}
+          </p>
+          <p className="text-xs text-muted m-0">
+            {route.orders.length} parada(s) · {totalBoxes} cxs
+          </p>
         </div>
         <span className="text-muted shrink-0"><IconChevron open={open} /></span>
       </button>
@@ -145,6 +153,11 @@ const RouteCard = ({ route, onDeliver }) => {
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-semibold text-primary m-0 truncate">{stop.clientName || `Pedido #${stop.id}`}</p>
                             <p className="text-[0.8rem] text-secondary mt-0.5 m-0">{stop.address || '—'}</p>
+                            {stop.stopNotes && (
+                              <p className="text-[0.8rem] text-warn mt-1 m-0 italic">
+                                Obs.: {stop.stopNotes}
+                              </p>
+                            )}
                           </div>
                           <div className="flex gap-2 flex-wrap shrink-0 items-start">
                             <a

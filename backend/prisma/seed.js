@@ -61,7 +61,7 @@ async function main() {
     const created = await prisma.product.create({
       data: {
         name: pName,
-        type: 'Outros' // generic type since it's not specified
+        type: '' // categoria a ser preenchida posteriormente pelo admin
       }
     });
     productMap[pName] = created.id;

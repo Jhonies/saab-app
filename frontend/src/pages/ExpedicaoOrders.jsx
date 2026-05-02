@@ -38,7 +38,7 @@ const OrderMobileCard = ({ order, onProcess }) => {
         </span>
       </div>
       <p className="text-[0.8125rem] text-primary m-0 overflow-hidden text-ellipsis whitespace-nowrap">
-        {order.client?.email ?? '—'}
+        {order.clientName || '—'}
       </p>
       <p className="text-[0.8rem] text-secondary m-0 overflow-hidden text-ellipsis whitespace-nowrap">
         {summariseItems(order.items)}
@@ -136,7 +136,7 @@ const ExpedicaoOrders = () => {
                   #{String(order.id).padStart(4, '0')}
                 </span>
                 <span className="text-[0.8125rem] text-primary overflow-hidden text-ellipsis whitespace-nowrap">
-                  {order.client?.email ?? '—'}
+                  {order.clientName || '—'}
                 </span>
                 <span className="text-[0.8125rem] text-secondary overflow-hidden text-ellipsis whitespace-nowrap max-lg:hidden">
                   {summariseItems(order.items)}

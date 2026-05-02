@@ -11,4 +11,6 @@ export const unassignOrderFromRoute   = (id, orderId) =>
   api.delete(`/routes/${id}/orders/${orderId}`).then(r => r.data)
 export const reorderRouteStops        = (id, orderIds) =>
   api.patch(`/routes/${id}/reorder`, { orderIds }).then(r => r.data)
+export const updateStopNotes          = (id, orderId, notes) =>
+  api.patch(`/routes/${id}/orders/${orderId}/notes`, { notes }).then(r => r.data)
 export const fetchAssignableOrders    = ()         => api.get('/routes/assignable-orders').then(r => r.data)

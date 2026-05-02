@@ -88,7 +88,6 @@ const CreateModal = ({ onClose, onSaved }) => {
               <option value="Congelados" />
               <option value="Secos" />
               <option value="Bebidas" />
-              <option value="Outros" />
             </datalist>
           </div>
 
@@ -190,7 +189,6 @@ const EditModal = ({ product, onClose, onSaved }) => {
               <option value="Congelados" />
               <option value="Secos" />
               <option value="Bebidas" />
-              <option value="Outros" />
             </datalist>
           </div>
 
@@ -289,7 +287,7 @@ const ProductList = ({ containers }) => {
             location = 'Bebidas'
             break
           default:
-            location = zone || 'Outros'
+            location = zone || ''
         }
 
         return location

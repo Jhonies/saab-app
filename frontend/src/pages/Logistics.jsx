@@ -3,30 +3,15 @@ import { fetchOrders, openInvoice, updateOrderStatus, deliverOrder, reassignOrde
 import { fetchDrivers } from '../services/userService'
 import { fetchRoutes } from '../services/routePlanService'
 
-/* ────────────────────────────────────────
-   Mock de endereços e coordenadas
-──────────────────────────────────────── */
-const CLIENT_GEO = {
-  'frigorifico.norte@saab.com': {
-    address: '7600 Dr Phillips Blvd, Orlando, FL',
-    lat: 28.4488,
-    lon: -81.4940,
-  },
-  'distribuidora.sul@saab.com': {
-    address: '5770 W Irlo Bronson Memorial Hwy, Kissimmee, FL',
-    lat: 28.3387,
-    lon: -81.4584,
-  },
-  'supermercado.abc@saab.com': {
-    address: '4200 Conroy Rd, Orlando, FL',
-    lat: 28.4835,
-    lon: -81.4310,
-  },
-}
-
+/* ── Coordenadas-fallback (depósito Orlando) usadas só quando o pedido
+ *  ainda não tem lat/lon (criação manual sem geocodificação). ── */
 const DEFAULT_GEO = { address: '6843 Conway Rd Ste 120, Orlando, FL 32812', lat: 28.4626, lon: -81.3305 }
 
-const getGeo = (email = '') => CLIENT_GEO[email] ?? DEFAULT_GEO
+const orderGeo = (order) => ({
+  address: order?.address || DEFAULT_GEO.address,
+  lat:     order?.lat     ?? DEFAULT_GEO.lat,
+  lon:     order?.lon     ?? DEFAULT_GEO.lon,
+})
 
 /* ── Status config ── */
 import { STATUS_LABEL } from '../constants/status'
@@ -84,8 +69,8 @@ const IconClose = () => (
 
 /* ── RouteModal ── */
 const RouteModal = ({ order, onClose }) => {
-  const clientLabel = order.clientName || order.client?.email || '—'
-  const geo   = getGeo(order.client?.email ?? '')
+  const clientLabel = order.clientName || '—'
+  const geo   = orderGeo(order)
 
   const delta  = 0.04
   const bbox   = `${geo.lon - delta},${geo.lat - delta},${geo.lon + delta},${geo.lat + delta}`
@@ -519,8 +504,8 @@ const Logistics = () => {
               )}
 
               {!loading && !error && visible.map(order => {
-                const clientLabel = order.clientName || order.client?.email || '—'
-                const geo    = getGeo(order.client?.email ?? '')
+                const clientLabel = order.clientName || '—'
+                const geo    = orderGeo(order)
                 const status = order.status ?? 'PENDING'
 
                 const dateDisplay = status === 'DELIVERED' && order.deliveredAt
@@ -628,8 +613,8 @@ const Logistics = () => {
             </p>
           )}
           {!loading && !error && visible.map(order => {
-            const clientLabel = order.clientName || order.client?.email || '—'
-            const geo   = getGeo(order.client?.email ?? '')
+            const clientLabel = order.clientName || '—'
+            const geo   = orderGeo(order)
             return (
               <OrderMobileCard
                 key={order.id}

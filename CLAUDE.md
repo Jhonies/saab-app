@@ -357,7 +357,7 @@ Notice       -> id, title, body, createdById, visibleTo[] (roles), expiresAt?
 
 ### Product Categories
 
-`Bovino` | `Suino` | `Aves` | `Miudos` | `Laticinios` | `Congelados` | `Secos` | `Bebidas` | `Outros`
+`Bovino` | `Suino` | `Aves` | `Miudos` | `Laticinios` | `Congelados` | `Secos` | `Bebidas`
 
 ### Location (Orlando, FL)
 

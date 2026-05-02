@@ -23,9 +23,10 @@ router.get('/:id', authorizeRoles('ADMIN', 'EXPEDICAO', 'VENDEDOR'), RoutePlan.g
 router.patch('/:id',  authorizeRoles('ADMIN', 'EXPEDICAO'), RoutePlan.update)
 router.delete('/:id', authorizeRoles('ADMIN', 'EXPEDICAO'), RoutePlan.remove)
 
-/* ── Assign / Unassign / Reorder ── */
-router.post('/:id/assign-orders',         authorizeRoles('ADMIN', 'EXPEDICAO'), RoutePlan.assignOrders)
-router.patch('/:id/reorder',              authorizeRoles('ADMIN', 'EXPEDICAO'), RoutePlan.reorderStops)
-router.delete('/:id/orders/:orderId',     authorizeRoles('ADMIN', 'EXPEDICAO'), RoutePlan.unassignOrder)
+/* ── Assign / Unassign / Reorder / Stop notes ── */
+router.post('/:id/assign-orders',           authorizeRoles('ADMIN', 'EXPEDICAO'), RoutePlan.assignOrders)
+router.patch('/:id/reorder',                authorizeRoles('ADMIN', 'EXPEDICAO'), RoutePlan.reorderStops)
+router.patch('/:id/orders/:orderId/notes',  authorizeRoles('ADMIN', 'EXPEDICAO'), RoutePlan.updateStopNotes)
+router.delete('/:id/orders/:orderId',       authorizeRoles('ADMIN', 'EXPEDICAO'), RoutePlan.unassignOrder)
 
 module.exports = router

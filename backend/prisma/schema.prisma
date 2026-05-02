@@ -30,6 +30,7 @@ model Route {
   id           Int       @id @default(autoincrement())
   name         String                                    // ex: "Orlando 2", "Miami-Jax"
   region       String    @default("")                    // ex: "Central FL", "South FL"
+  truck        String    @default("")                    // identificação manual do caminhão (texto livre)
   status       String    @default("DRAFT")               // DRAFT|READY|IN_TRANSIT|COMPLETED
   driverId     Int?
   driver       User?     @relation("RouteDriver", fields: [driverId], references: [id])
@@ -125,6 +126,8 @@ model Order {
   driver              User?        @relation("OrderDriver", fields: [driverId], references: [id])
   // Ordem manual da parada dentro da rota (definida pelo admin) — fallback para id
   stopOrder           Int          @default(0)
+  // Observação livre por parada (preenchida pelo admin na rota) — ex: "Recebe até 17h"
+  stopNotes           String       @default("")
   // Endereço de entrega (apenas DELIVERY)
   address             String      @default("")
   lat                 Float?

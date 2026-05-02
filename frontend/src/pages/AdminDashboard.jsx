@@ -271,7 +271,7 @@ export const AdminHome = () => {
                     #{String(order.id).padStart(4, '0')}
                   </span>
                   <span className="text-[0.8125rem] text-primary overflow-hidden text-ellipsis whitespace-nowrap pr-2">
-                    {order.clientName || order.client?.email || '—'}
+                    {order.clientName || '—'}
                   </span>
                   <span>
                     <span

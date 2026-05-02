@@ -12,6 +12,7 @@ import BarcodeScanner from '../components/BarcodeScanner'
 import { parseGS1Barcode } from '../utils/gs1Parser'
 
 import { STATUS_CONFIG, STATUS_FALLBACK } from '../constants/status'
+import { ZONE_LABELS } from '../constants/zones'
 
 const fmt = (n) =>
   Number(n).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
@@ -232,7 +233,7 @@ const ExpedicaoPickingList = () => {
         <div className="flex-1 flex flex-col gap-2">
           <div className="flex gap-3 text-[0.8125rem] items-baseline">
             <span className="text-[0.625rem] font-bold uppercase tracking-[0.12em] text-muted min-w-[64px] shrink-0">Cliente</span>
-            <span className="text-secondary">{order.client?.email ?? '—'}</span>
+            <span className="text-secondary">{order.clientName || '—'}</span>
           </div>
           <div className="flex gap-3 text-[0.8125rem] items-baseline">
             <span className="text-[0.625rem] font-bold uppercase tracking-[0.12em] text-muted min-w-[64px] shrink-0">Endereço</span>
@@ -258,8 +259,12 @@ const ExpedicaoPickingList = () => {
         {order.items?.map(item => (
           <div key={item.id} className="bg-surface border border-border rounded-md px-5 py-4 flex flex-col gap-3">
             <div className="flex items-center gap-3 flex-wrap">
-              <span className="font-mono text-sm font-bold text-secondary">[{item.container?.label ?? '—'}]</span>
               <span className="text-sm text-primary">{item.product?.name ?? '—'}</span>
+              {item.container?.zone && (
+                <span className="text-[0.6875rem] font-semibold uppercase tracking-wide text-muted bg-hover border border-border rounded px-2 py-0.5">
+                  {ZONE_LABELS[item.container.zone] ?? item.container.zone}
+                </span>
+              )}
               <span className="text-xs text-secondary">{item.product?.type ?? '—'}</span>
               <span className="text-[0.8125rem] font-semibold text-secondary ml-auto">
                 {item.quantity} cx a {item.priceType === 'PER_LB'

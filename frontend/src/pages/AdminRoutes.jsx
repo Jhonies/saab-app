@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import {
   fetchRoutes, createRoute, updateRoute, deleteRoute,
   assignOrdersToRoute, unassignOrderFromRoute, fetchAssignableOrders,
-  reorderRouteStops,
+  reorderRouteStops, updateStopNotes,
 } from '../services/routePlanService'
 import { fetchDrivers } from '../services/userService'
 
@@ -101,6 +101,7 @@ const RouteFormModal = ({ route, drivers, onClose, onSaved }) => {
   const isEdit = !!route
   const [name,         setName]         = useState(route?.name ?? '')
   const [region,       setRegion]       = useState(route?.region ?? '')
+  const [truck,        setTruck]        = useState(route?.truck ?? '')
   const [driverId,     setDriverId]     = useState(route?.driverId ? String(route.driverId) : '')
   const [scheduledFor, setScheduledFor] = useState(route?.scheduledFor ? route.scheduledFor.slice(0, 10) : '')
   const [notes,        setNotes]        = useState(route?.notes ?? '')
@@ -108,13 +109,15 @@ const RouteFormModal = ({ route, drivers, onClose, onSaved }) => {
   const [err,          setErr]          = useState('')
 
   const handleSave = async () => {
-    if (!name.trim()) { setErr('Nome é obrigatório.'); return }
+    if (!name.trim())  { setErr('Nome é obrigatório.'); return }
+    if (!truck.trim()) { setErr('Truck é obrigatório.'); return }
     setSaving(true)
     setErr('')
     try {
       const data = {
         name:         name.trim(),
         region:       region.trim() || null,
+        truck:        truck.trim(),
         driverId:     driverId ? Number(driverId) : null,
         scheduledFor: scheduledFor || null,
         notes:        notes.trim() || null,
@@ -161,6 +164,19 @@ const RouteFormModal = ({ route, drivers, onClose, onSaved }) => {
               placeholder="ex: Central FL, Miami-Jax"
               value={region}
               onChange={e => setRegion(e.target.value)}
+              disabled={saving}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-secondary">Truck *</label>
+            <input
+              type="text"
+              required
+              className="bg-input border border-border-input rounded text-sm text-primary outline-none w-full py-2.5 px-3.5 placeholder:text-muted focus:border-red focus:ring-2 focus:ring-red/20"
+              placeholder="ex: NEW ISUZU"
+              value={truck}
+              onChange={e => setTruck(e.target.value)}
               disabled={saving}
             />
           </div>
@@ -424,8 +440,124 @@ const AutoRoutePreviewModal = ({ route, onClose, onApply }) => {
   )
 }
 
+/* ── Linha de parada (com edição inline de observação) ── */
+const StopRow = ({ order, index, total, onUnassign, onMove, onSaveNotes, routeId }) => {
+  const [notes,   setNotes]   = useState(order.stopNotes ?? '')
+  const [editing, setEditing] = useState(false)
+  const [saving,  setSaving]  = useState(false)
+
+  // Mantém o estado local sincronizado com mudanças vindas do servidor (ex: optimistic UI revert).
+  useEffect(() => { setNotes(order.stopNotes ?? '') }, [order.stopNotes])
+
+  const handleSave = async () => {
+    if ((order.stopNotes ?? '') === notes.trim()) { setEditing(false); return }
+    setSaving(true)
+    try {
+      await onSaveNotes(routeId, order.id, notes.trim())
+      setEditing(false)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleCancel = () => {
+    setNotes(order.stopNotes ?? '')
+    setEditing(false)
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5 bg-hover border border-border rounded px-3 py-2">
+      <div className="flex items-center justify-between gap-3">
+        <span className="w-6 h-6 rounded-full bg-input border border-border-input flex items-center justify-center text-[0.6875rem] font-bold text-primary shrink-0">{index + 1}</span>
+        <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
+          <span className="font-mono text-xs font-bold text-secondary">#{order.id}</span>
+          <span className="text-sm text-primary truncate">{order.clientName || '—'}</span>
+          <span className="text-[0.625rem] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-input text-secondary whitespace-nowrap">{order.status}</span>
+          <span className="text-xs text-muted">{order.totalBoxes} cxs</span>
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            className="bg-transparent border border-border rounded p-1 text-muted cursor-pointer hover:text-primary hover:border-muted disabled:opacity-30 disabled:cursor-not-allowed"
+            onClick={() => onMove(routeId, index, index - 1)}
+            disabled={index === 0}
+            title="Mover para cima"
+          >
+            <IconArrowUp />
+          </button>
+          <button
+            className="bg-transparent border border-border rounded p-1 text-muted cursor-pointer hover:text-primary hover:border-muted disabled:opacity-30 disabled:cursor-not-allowed"
+            onClick={() => onMove(routeId, index, index + 1)}
+            disabled={index === total - 1}
+            title="Mover para baixo"
+          >
+            <IconArrowDown />
+          </button>
+          <button
+            className="bg-transparent border-none text-muted cursor-pointer p-1 hover:text-error"
+            onClick={() => onUnassign(routeId, order.id)}
+            title="Remover desta rota"
+          >
+            <IconClose />
+          </button>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 pl-9">
+        {!editing ? (
+          <>
+            <span className="text-[0.6875rem] font-bold uppercase tracking-wide text-muted">Obs.:</span>
+            <span className="text-xs text-secondary flex-1 italic truncate">
+              {order.stopNotes || 'Sem observação'}
+            </span>
+            <button
+              type="button"
+              className="text-[0.6875rem] font-semibold text-info bg-transparent border-none cursor-pointer hover:underline"
+              onClick={() => setEditing(true)}
+            >
+              {order.stopNotes ? 'Editar' : 'Adicionar'}
+            </button>
+          </>
+        ) : (
+          <>
+            <input
+              type="text"
+              className="bg-input border border-border-input rounded text-xs text-primary outline-none flex-1 py-1.5 px-2.5 placeholder:text-muted focus:border-red focus:ring-2 focus:ring-red/20"
+              placeholder="ex: Recebe até 17h, Abrir 6h…"
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              maxLength={500}
+              disabled={saving}
+              autoFocus
+              onKeyDown={e => {
+                if (e.key === 'Enter') handleSave()
+                if (e.key === 'Escape') handleCancel()
+              }}
+            />
+            <button
+              type="button"
+              className="bg-red border-none rounded px-2.5 py-1 text-[0.6875rem] font-bold uppercase tracking-wide text-on-red cursor-pointer hover:bg-red-h disabled:opacity-40"
+              onClick={handleSave}
+              disabled={saving}
+            >
+              {saving ? '…' : 'Guardar'}
+            </button>
+            <button
+              type="button"
+              className="bg-transparent border border-border-input rounded px-2.5 py-1 text-[0.6875rem] font-semibold text-secondary cursor-pointer hover:text-primary disabled:opacity-40"
+              onClick={handleCancel}
+              disabled={saving}
+            >
+              Cancelar
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 /* ── Card de rota ── */
-const RouteCard = ({ route, onEdit, onDelete, onAssign, onUnassign, onAdvance, onMove, onPreviewAuto }) => {
+const RouteCard = ({ route, onEdit, onDelete, onAssign, onUnassign, onAdvance, onMove, onPreviewAuto, onSaveStopNotes }) => {
   const driverLabel = route.driver?.name?.trim() || route.driver?.email || '—'
   const next = NEXT_STATUS[route.status]
 
@@ -434,17 +566,22 @@ const RouteCard = ({ route, onEdit, onDelete, onAssign, onUnassign, onAdvance, o
       <div className="px-5 py-4 border-b border-border flex items-start justify-between gap-3 flex-wrap">
         <div className="flex flex-col gap-1 min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="text-base font-bold text-primary m-0">{route.name}</h3>
+            <h3 className="text-base font-bold text-primary m-0 uppercase">
+              {route.name}
+              {route.region && ` - ${route.region}`}
+              {route.scheduledFor && ` - ${new Date(route.scheduledFor).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' })}`}
+            </h3>
             <span className={`inline-flex items-center text-[0.625rem] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${STATUS_BADGE[route.status] ?? 'bg-hover text-secondary'}`}>
               {STATUS_LABEL[route.status] ?? route.status}
             </span>
           </div>
-          <p className="text-xs text-secondary m-0">
-            {route.region && <span>Região: {route.region} · </span>}
-            <span>Motorista: {driverLabel}</span>
-            {route.scheduledFor && <span> · Data: {new Date(route.scheduledFor).toLocaleDateString('pt-PT')}</span>}
+          <p className="text-xs text-secondary m-0 uppercase tracking-wide">
+            TRUCK: <strong className="text-primary">{route.truck || '—'}</strong>
           </p>
-          {route.notes && <p className="text-xs text-muted m-0 mt-0.5">{route.notes}</p>}
+          <p className="text-xs text-secondary m-0 uppercase tracking-wide">
+            DRIVER: <strong className="text-primary">{driverLabel}</strong>
+            {route.notes && <span className="text-muted normal-case tracking-normal"> ({route.notes})</span>}
+          </p>
         </div>
 
         <div className="flex gap-2 flex-wrap shrink-0">
@@ -495,40 +632,16 @@ const RouteCard = ({ route, onEdit, onDelete, onAssign, onUnassign, onAdvance, o
               Pedidos ({route.orders.length}) · {route.orders.reduce((s, o) => s + (o.totalBoxes || 0), 0)} cxs
             </p>
             {route.orders.map((o, i) => (
-              <div key={o.id} className="flex items-center justify-between gap-3 bg-hover border border-border rounded px-3 py-2">
-                <span className="w-6 h-6 rounded-full bg-input border border-border-input flex items-center justify-center text-[0.6875rem] font-bold text-primary shrink-0">{i + 1}</span>
-                <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
-                  <span className="font-mono text-xs font-bold text-secondary">#{o.id}</span>
-                  <span className="text-sm text-primary truncate">{o.clientName || '—'}</span>
-                  <span className="text-[0.625rem] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-input text-secondary whitespace-nowrap">{o.status}</span>
-                  <span className="text-xs text-muted">{o.totalBoxes} cxs</span>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    className="bg-transparent border border-border rounded p-1 text-muted cursor-pointer hover:text-primary hover:border-muted disabled:opacity-30 disabled:cursor-not-allowed"
-                    onClick={() => onMove(route.id, i, i - 1)}
-                    disabled={i === 0}
-                    title="Mover para cima"
-                  >
-                    <IconArrowUp />
-                  </button>
-                  <button
-                    className="bg-transparent border border-border rounded p-1 text-muted cursor-pointer hover:text-primary hover:border-muted disabled:opacity-30 disabled:cursor-not-allowed"
-                    onClick={() => onMove(route.id, i, i + 1)}
-                    disabled={i === route.orders.length - 1}
-                    title="Mover para baixo"
-                  >
-                    <IconArrowDown />
-                  </button>
-                  <button
-                    className="bg-transparent border-none text-muted cursor-pointer p-1 hover:text-error"
-                    onClick={() => onUnassign(route.id, o.id)}
-                    title="Remover desta rota"
-                  >
-                    <IconClose />
-                  </button>
-                </div>
-              </div>
+              <StopRow
+                key={o.id}
+                order={o}
+                index={i}
+                total={route.orders.length}
+                routeId={route.id}
+                onMove={onMove}
+                onUnassign={onUnassign}
+                onSaveNotes={onSaveStopNotes}
+              />
             ))}
           </div>
         )}
@@ -636,6 +749,16 @@ const AdminRoutes = () => {
     setPreviewAuto(null)
   }
 
+  const handleSaveStopNotes = async (routeId, orderId, notes) => {
+    try {
+      const updated = await updateStopNotes(routeId, orderId, notes)
+      setRoutes(prev => prev.map(r => r.id === updated.id ? updated : r))
+    } catch (e) {
+      alert(e.response?.data?.message ?? 'Erro ao guardar observação.')
+      throw e
+    }
+  }
+
   const FILTERS = [
     { key: 'ALL',        label: 'Todas',       count: routes.length },
     { key: 'DRAFT',      label: 'Em preparo',  count: routes.filter(r => r.status === 'DRAFT').length },
@@ -709,6 +832,7 @@ const AdminRoutes = () => {
               onAdvance={handleAdvance}
               onMove={handleMove}
               onPreviewAuto={setPreviewAuto}
+              onSaveStopNotes={handleSaveStopNotes}
             />
           ))}
         </div>

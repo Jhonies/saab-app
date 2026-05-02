@@ -6,7 +6,7 @@ const ROUTE_INCLUDE = {
     select: {
       id: true, clientName: true, status: true, address: true, lat: true, lon: true,
       totalBoxes: true, deliveryWindowStart: true, deliveryWindowEnd: true,
-      deliveryType: true, stopOrder: true,
+      deliveryType: true, stopOrder: true, stopNotes: true,
     },
     orderBy: [{ stopOrder: 'asc' }, { id: 'asc' }],
   },
@@ -55,13 +55,14 @@ const getRoute = (id) =>
   prisma.route.findUnique({ where: { id: Number(id) }, include: ROUTE_INCLUDE })
 
 /* ── Create ── */
-const createRoute = async ({ name, region, driverId, scheduledFor, notes, createdById }) => {
+const createRoute = async ({ name, region, truck, driverId, scheduledFor, notes, createdById }) => {
   return prisma.$transaction(async (tx) => {
     if (driverId != null) await assertValidDriver(tx, driverId)
     return tx.route.create({
       data: {
         name:         name.trim(),
         region:       (region || '').trim(),
+        truck:        (truck  || '').trim(),
         status:       'DRAFT',
         driverId:     driverId ?? null,
         scheduledFor: scheduledFor ? new Date(scheduledFor) : null,
@@ -74,7 +75,7 @@ const createRoute = async ({ name, region, driverId, scheduledFor, notes, create
 }
 
 /* ── Update ── */
-const updateRoute = async (id, { name, region, driverId, scheduledFor, notes, status }) => {
+const updateRoute = async (id, { name, region, truck, driverId, scheduledFor, notes, status }) => {
   return prisma.$transaction(async (tx) => {
     const existing = await tx.route.findUnique({ where: { id: Number(id) } })
     if (!existing) throw Object.assign(new Error('Rota não encontrada.'), { status: 404 })
@@ -90,6 +91,7 @@ const updateRoute = async (id, { name, region, driverId, scheduledFor, notes, st
     const data = {}
     if (name !== undefined)         data.name         = name.trim()
     if (region !== undefined)       data.region       = (region || '').trim()
+    if (truck !== undefined)        data.truck        = (truck  || '').trim()
     if (driverId !== undefined)     data.driverId     = driverId ?? null
     if (scheduledFor !== undefined) data.scheduledFor = scheduledFor ? new Date(scheduledFor) : null
     if (notes !== undefined)        data.notes        = (notes || '').trim()
@@ -169,6 +171,24 @@ const assignOrders = async (id, orderIds) => {
   })
 }
 
+/* ── Atualizar observação de uma parada (Order.stopNotes) ── */
+const updateStopNotes = async (routeId, orderId, notes) => {
+  return prisma.$transaction(async (tx) => {
+    const order = await tx.order.findUnique({ where: { id: Number(orderId) } })
+    if (!order) throw Object.assign(new Error('Pedido não encontrado.'), { status: 404 })
+    if (order.routeId !== Number(routeId)) {
+      throw Object.assign(new Error('Pedido não pertence a esta rota.'), { status: 400 })
+    }
+
+    await tx.order.update({
+      where: { id: Number(orderId) },
+      data:  { stopNotes: (notes ?? '').toString() },
+    })
+
+    return tx.route.findUnique({ where: { id: Number(routeId) }, include: ROUTE_INCLUDE })
+  })
+}
+
 /* ── Reorder stops ──
  * Define stopOrder dos pedidos da rota na ordem do array recebido.
  * Apenas pedidos já pertencentes à rota podem ser reordenados.
@@ -240,6 +260,7 @@ module.exports = {
   deleteRoute,
   assignOrders,
   reorderStops,
+  updateStopNotes,
   unassignOrder,
   listAssignableOrders,
 }

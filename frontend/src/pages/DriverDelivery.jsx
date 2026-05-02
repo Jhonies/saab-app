@@ -121,7 +121,7 @@ const DriverDelivery = () => {
         <div className="flex flex-col gap-2">
           <div className="flex gap-3 text-[0.8125rem] items-baseline">
             <span className="text-[0.625rem] font-bold uppercase tracking-[0.12em] text-muted min-w-[64px] shrink-0">Cliente</span>
-            <span className="text-primary">{order.client?.email ?? '—'}</span>
+            <span className="text-primary">{order.clientName || '—'}</span>
           </div>
           <div className="flex gap-3 text-[0.8125rem] items-baseline">
             <span className="text-[0.625rem] font-bold uppercase tracking-[0.12em] text-muted min-w-[64px] shrink-0">Endereço</span>
