@@ -88,3 +88,14 @@ body {
 #root {
   min-height: 100svh;
 }
+
+/* ── Weight inputs: hide native spinners + prevent drag/scroll value mutation ── */
+input[data-weight-input] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+input[data-weight-input]::-webkit-outer-spin-button,
+input[data-weight-input]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}

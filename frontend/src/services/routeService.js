@@ -1,4 +1,4 @@
 import api from './authService'
 
-export const fetchDailyRoute = () =>
-  api.get('/routes/daily').then(r => r.data)
+export const fetchMyRoutes = () =>
+  api.get('/routes/mine').then(r => r.data)

@@ -11,11 +11,12 @@ const createOrderSchema = z.object({
   address:      z.string().nullish(),
   deliveryType: z.enum(['DELIVERY', 'PICKUP']).default('DELIVERY'),
   items: z.array(z.object({
-    productId:   z.number({ required_error: 'productId é obrigatório.' }).int().positive(),
-    quantity:    z.number({ required_error: 'quantity é obrigatório.' }).int().positive('Quantidade deve ser um inteiro positivo.'),
-    priceType:   z.enum(['PER_LB', 'PER_BOX', 'PER_UNIT']).default('PER_LB'),
-    pricePerLb:  z.number().positive('pricePerLb deve ser positivo.').nullish(),
-    pricePerBox: z.number().positive('pricePerBox deve ser positivo.').nullish(),
+    productId:    z.number({ required_error: 'productId é obrigatório.' }).int().positive(),
+    quantity:     z.number({ required_error: 'quantity é obrigatório.' }).int().positive('Quantidade deve ser um inteiro positivo.'),
+    priceType:    z.enum(['PER_LB', 'PER_BOX', 'PER_UNIT']).default('PER_LB'),
+    pricePerLb:   z.number().positive('pricePerLb deve ser positivo.').nullish(),
+    pricePerBox:  z.number().positive('pricePerBox deve ser positivo.').nullish(),
+    pricePerUnit: z.number().positive('pricePerUnit deve ser positivo.').nullish(),
   })).min(1, 'items[] é obrigatório e não pode ser vazio.'),
 }).refine(
   d => d.storeId || d.clientId || d.clientName,

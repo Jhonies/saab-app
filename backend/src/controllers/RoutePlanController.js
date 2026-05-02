@@ -22,9 +22,23 @@ const assignOrdersSchema = z.object({
   orderIds: z.array(z.number().int().positive()).min(1, 'orderIds[] não pode ser vazio.'),
 })
 
+const reorderStopsSchema = z.object({
+  orderIds: z.array(z.number().int().positive()).min(1, 'orderIds[] não pode ser vazio.'),
+})
+
 const list = async (req, res, next) => {
   try {
     const routes = await RoutePlanService.listRoutes({ status: req.query.status })
+    return res.json(routes)
+  } catch (err) { next(err) }
+}
+
+const listMine = async (req, res, next) => {
+  try {
+    if (req.user.role !== 'MOTORISTA') {
+      return res.status(403).json({ message: 'Apenas motoristas podem aceder.' })
+    }
+    const routes = await RoutePlanService.listRoutesByDriver(req.user.sub)
     return res.json(routes)
   } catch (err) { next(err) }
 }
@@ -85,6 +99,19 @@ const assignOrders = async (req, res) => {
   }
 }
 
+const reorderStops = async (req, res) => {
+  const parsed = reorderStopsSchema.safeParse(req.body)
+  if (!parsed.success) {
+    return res.status(400).json({ message: parsed.error.issues.map(i => i.message).join('; ') })
+  }
+  try {
+    const route = await RoutePlanService.reorderStops(req.params.id, parsed.data.orderIds)
+    return res.json(route)
+  } catch (err) {
+    return res.status(err.status || 500).json({ message: err.message })
+  }
+}
+
 const unassignOrder = async (req, res) => {
   try {
     const route = await RoutePlanService.unassignOrder(req.params.id, req.params.orderId)
@@ -103,11 +130,13 @@ const listAssignableOrders = async (_req, res, next) => {
 
 module.exports = {
   list,
+  listMine,
   getOne,
   create,
   update,
   remove,
   assignOrders,
+  reorderStops,
   unassignOrder,
   listAssignableOrders,
 }

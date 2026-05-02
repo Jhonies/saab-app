@@ -41,6 +41,8 @@ const ExpedicaoPickingList = () => {
   const [boxWeightsMap, setBoxWeightsMap] = useState({})
   // Per-item PER_BOX confirmation: { [orderItemId]: boolean }
   const [boxConfirmed,  setBoxConfirmed]  = useState({})
+  // Trava temporária dos inputs de peso enquanto o utilizador está a arrastar/scrollar
+  const [weightLocked,  setWeightLocked]  = useState(false)
 
   // Barcode scanner state
   const [scannerOpen, setScannerOpen] = useState(false)
@@ -141,6 +143,8 @@ const ExpedicaoPickingList = () => {
         const weights = boxWeightsMap[item.id] || {}
         const totalWeight = Object.values(weights).reduce((s, v) => s + (parseFloat(v) || 0), 0)
         result[item.id] = totalWeight * (item.pricePerLb || 0)
+      } else if (item.priceType === 'PER_UNIT') {
+        result[item.id] = item.quantity * (item.pricePerUnit || 0)
       } else {
         result[item.id] = item.quantity * (item.pricePerBox || 0)
       }
@@ -260,12 +264,20 @@ const ExpedicaoPickingList = () => {
               <span className="text-[0.8125rem] font-semibold text-secondary ml-auto">
                 {item.quantity} cx a {item.priceType === 'PER_LB'
                   ? `${fmt(item.pricePerLb || 0)}/lb`
+                  : item.priceType === 'PER_UNIT'
+                  ? `${fmt(item.pricePerUnit || 0)}/un`
                   : `${fmt(item.pricePerBox || 0)}/cx`}
               </span>
             </div>
 
             {item.priceType === 'PER_LB' && order.status === 'SEPARATING' && (
-              <div className="flex flex-col gap-2 pl-2">
+              <div
+                className="flex flex-col gap-2 pl-2"
+                onDragStart={(e) => { e.preventDefault(); setWeightLocked(true); e.currentTarget.querySelectorAll('input').forEach(el => el.blur()) }}
+                onDragEnd={() => setWeightLocked(false)}
+                onTouchMove={() => weightLocked || setWeightLocked(true)}
+                onTouchEnd={() => setWeightLocked(false)}
+              >
                 {Array.from({ length: item.quantity }, (_, i) => i + 1).map(boxNum => (
                   <div key={boxNum} className="flex items-center gap-3">
                     <label className="text-xs font-semibold text-secondary min-w-[80px]">Cx {boxNum} (lbs)</label>
@@ -273,10 +285,15 @@ const ExpedicaoPickingList = () => {
                       type="number"
                       min="0"
                       step="0.1"
+                      data-weight-input
+                      draggable={false}
+                      readOnly={weightLocked}
                       className="bg-input border border-border-input rounded px-3 py-2 text-[0.9375rem] text-primary w-[140px] outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-muted focus:border-red focus:shadow-[0_0_0_3px_rgba(139,0,0,0.22)]"
                       placeholder="0.0"
                       value={boxWeightsMap[item.id]?.[boxNum] ?? ''}
-                      onChange={e => setBoxWeight(item.id, boxNum, e.target.value)}
+                      onChange={e => { if (!weightLocked) setBoxWeight(item.id, boxNum, e.target.value) }}
+                      onWheel={e => e.target.blur()}
+                      onDragStart={e => e.preventDefault()}
                     />
                     <button
                       type="button"
@@ -311,7 +328,7 @@ const ExpedicaoPickingList = () => {
               </div>
             )}
 
-            {item.priceType === 'PER_BOX' && order.status === 'SEPARATING' && (
+            {item.priceType !== 'PER_LB' && order.status === 'SEPARATING' && (
               <div className="flex items-center justify-between gap-4 pl-2 flex-wrap">
                 <label className="flex items-center gap-2 text-[0.8125rem] text-secondary cursor-pointer">
                   <span
@@ -324,7 +341,7 @@ const ExpedicaoPickingList = () => {
                   >
                     {boxConfirmed[item.id] && <IconCheck />}
                   </span>
-                  Separado — {item.quantity} cxs
+                  Separado — {item.quantity} {item.priceType === 'PER_UNIT' ? 'un' : 'cxs'}
                 </label>
                 <div className="text-[0.8125rem] font-bold text-primary text-right pt-1 border-t border-border">
                   Subtotal: {fmt(itemSubtotals[item.id] || 0)}
@@ -332,9 +349,11 @@ const ExpedicaoPickingList = () => {
               </div>
             )}
 
-            {item.priceType === 'PER_BOX' && readOnly && (
+            {item.priceType !== 'PER_LB' && readOnly && (
               <div className="flex items-center justify-between gap-4 pl-2 flex-wrap">
-                <span className="text-[0.8125rem] text-primary">{item.quantity} cxs — {fmt(item.quantity * (item.pricePerBox || 0))}</span>
+                <span className="text-[0.8125rem] text-primary">
+                  {item.quantity} {item.priceType === 'PER_UNIT' ? 'un' : 'cxs'} — {fmt(itemSubtotals[item.id] || 0)}
+                </span>
               </div>
             )}
           </div>

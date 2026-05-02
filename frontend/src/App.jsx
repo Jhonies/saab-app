@@ -52,7 +52,6 @@ const App = () => {
             <Route path="orders/new"    element={<OrderEntry />} />
             <Route path="logistics"     element={<Logistics />} />
             <Route path="routes"        element={<AdminRoutes />} />
-            <Route path="routes/daily"  element={<DriverRoutes />} />
             <Route path="products"      element={<Navigate to="/admin/stock" replace />} />
             <Route path="clients"       element={<AdminClients />} />
             <Route path="users"         element={<AdminUsers />} />

@@ -4,10 +4,11 @@ const ROUTE_INCLUDE = {
   driver: { select: { id: true, name: true, email: true } },
   orders: {
     select: {
-      id: true, clientName: true, status: true, address: true, totalBoxes: true,
-      deliveryWindowStart: true, deliveryWindowEnd: true, deliveryType: true,
+      id: true, clientName: true, status: true, address: true, lat: true, lon: true,
+      totalBoxes: true, deliveryWindowStart: true, deliveryWindowEnd: true,
+      deliveryType: true, stopOrder: true,
     },
-    orderBy: { id: 'asc' },
+    orderBy: [{ stopOrder: 'asc' }, { id: 'asc' }],
   },
 }
 
@@ -30,6 +31,22 @@ const listRoutes = async ({ status } = {}) => {
     where,
     include: ROUTE_INCLUDE,
     orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
+  })
+}
+
+/* ── Listar rotas atribuídas a um motorista (para a tela "Rotas de hoje").
+ *  Inclui apenas rotas em curso: DRAFT, READY, IN_TRANSIT.
+ *  Não filtra por scheduledFor para evitar fuso/timezone — o motorista vê
+ *  todas as rotas ativas atribuídas a si.
+ */
+const listRoutesByDriver = async (driverId) => {
+  return prisma.route.findMany({
+    where: {
+      driverId: Number(driverId),
+      status:   { in: ['DRAFT', 'READY', 'IN_TRANSIT'] },
+    },
+    include: ROUTE_INCLUDE,
+    orderBy: [{ scheduledFor: 'asc' }, { createdAt: 'desc' }],
   })
 }
 
@@ -104,7 +121,9 @@ const deleteRoute = async (id) => {
   })
 }
 
-/* ── Assign / Unassign orders ── */
+/* ── Assign / Unassign orders ──
+ * Atribui pedidos a uma rota, preservando a ordem manual (stopOrder = max + N na ordem do array).
+ */
 const assignOrders = async (id, orderIds) => {
   return prisma.$transaction(async (tx) => {
     const route = await tx.route.findUnique({ where: { id: Number(id) } })
@@ -126,14 +145,58 @@ const assignOrders = async (id, orderIds) => {
       }
     }
 
-    await tx.order.updateMany({
-      where: { id: { in: ids } },
-      data: {
-        routeId:  Number(id),
-        driverId: route.driverId ?? null,
-        route:    route.name,
-      },
+    // Posição inicial = maior stopOrder já existente na rota
+    const lastStop = await tx.order.aggregate({
+      where: { routeId: Number(id) },
+      _max:  { stopOrder: true },
     })
+    let nextOrder = (lastStop._max.stopOrder ?? 0) + 1
+
+    // Atualizar cada pedido individualmente para preservar a ordem do array
+    for (const orderId of ids) {
+      await tx.order.update({
+        where: { id: orderId },
+        data: {
+          routeId:   Number(id),
+          driverId:  route.driverId ?? null,
+          route:     route.name,
+          stopOrder: nextOrder++,
+        },
+      })
+    }
+
+    return tx.route.findUnique({ where: { id: Number(id) }, include: ROUTE_INCLUDE })
+  })
+}
+
+/* ── Reorder stops ──
+ * Define stopOrder dos pedidos da rota na ordem do array recebido.
+ * Apenas pedidos já pertencentes à rota podem ser reordenados.
+ */
+const reorderStops = async (id, orderIds) => {
+  return prisma.$transaction(async (tx) => {
+    const route = await tx.route.findUnique({
+      where:   { id: Number(id) },
+      include: { orders: { select: { id: true } } },
+    })
+    if (!route) throw Object.assign(new Error('Rota não encontrada.'), { status: 404 })
+
+    const ids = (orderIds || []).map(Number).filter(Number.isFinite)
+    const routeOrderIds = new Set(route.orders.map(o => o.id))
+
+    if (ids.length !== route.orders.length || ids.some(oid => !routeOrderIds.has(oid))) {
+      throw Object.assign(
+        new Error('orderIds[] deve conter exatamente os mesmos pedidos da rota.'),
+        { status: 400 },
+      )
+    }
+
+    for (let i = 0; i < ids.length; i += 1) {
+      await tx.order.update({
+        where: { id: ids[i] },
+        data:  { stopOrder: i + 1 },
+      })
+    }
 
     return tx.route.findUnique({ where: { id: Number(id) }, include: ROUTE_INCLUDE })
   })
@@ -170,11 +233,13 @@ const listAssignableOrders = () =>
 
 module.exports = {
   listRoutes,
+  listRoutesByDriver,
   getRoute,
   createRoute,
   updateRoute,
   deleteRoute,
   assignOrders,
+  reorderStops,
   unassignOrder,
   listAssignableOrders,
 }

@@ -44,7 +44,9 @@
       "Bash(npm run *)",
       "Read(//tmp/claude/C--Users-vlope-Desktop-Project-saab-app/c4b99e64-c166-437c-b008-6087c36f5fc8/tasks/**)",
       "Bash(cat \"C:\\\\\\\\Users\\\\\\\\vlope\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\C--Users-vlope-Desktop-Project-saab-app\\\\\\\\c4b99e64-c166-437c-b008-6087c36f5fc8\\\\\\\\tasks\\\\\\\\b1g275n41.output\")",
-      "Bash(cat \"C:\\\\\\\\Users\\\\\\\\vlope\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\C--Users-vlope-Desktop-Project-saab-app\\\\\\\\c4b99e64-c166-437c-b008-6087c36f5fc8\\\\\\\\tasks\\\\\\\\b6h291sv7.output\")"
+      "Bash(cat \"C:\\\\\\\\Users\\\\\\\\vlope\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\C--Users-vlope-Desktop-Project-saab-app\\\\\\\\c4b99e64-c166-437c-b008-6087c36f5fc8\\\\\\\\tasks\\\\\\\\b6h291sv7.output\")",
+      "Bash(ls C:\\\\Users\\\\vlope\\\\Desktop\\\\Project\\\\saab-app\\\\backend\\\\prisma\\\\migrations *)",
+      "Bash(npx eslint *)"
     ]
   }
 }

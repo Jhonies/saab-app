@@ -2,8 +2,42 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import {
   fetchRoutes, createRoute, updateRoute, deleteRoute,
   assignOrdersToRoute, unassignOrderFromRoute, fetchAssignableOrders,
+  reorderRouteStops,
 } from '../services/routePlanService'
 import { fetchDrivers } from '../services/userService'
+
+/* ── Depósito SAAB (Orlando) — usado apenas para preview da rota automática ── */
+const DEPOT = { lat: 28.4626, lon: -81.3305 }
+
+/* ── Haversine simples (km) ── */
+const haversineKm = (a, b) => {
+  if (a?.lat == null || a?.lon == null || b?.lat == null || b?.lon == null) return Infinity
+  const R   = 6371
+  const rad = v => (v * Math.PI) / 180
+  const dLa = rad(b.lat - a.lat)
+  const dLo = rad(b.lon - a.lon)
+  const h   = Math.sin(dLa / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLo / 2) ** 2
+  return R * 2 * Math.asin(Math.sqrt(h))
+}
+
+/* ── Sugere ordem por janela de entrega + nearest-neighbour quando empatam ── */
+const suggestOrder = (orders) => {
+  const remaining = [...orders]
+  const sorted = []
+  let cursor = DEPOT
+  while (remaining.length > 0) {
+    remaining.sort((a, b) => {
+      const wa = (a.deliveryWindowStart || '99:99')
+      const wb = (b.deliveryWindowStart || '99:99')
+      if (wa !== wb) return wa.localeCompare(wb)
+      return haversineKm(cursor, a) - haversineKm(cursor, b)
+    })
+    const next = remaining.shift()
+    sorted.push(next)
+    if (next.lat != null && next.lon != null) cursor = next
+  }
+  return sorted
+}
 
 const STATUS_LABEL = {
   DRAFT:      'Em preparo',
@@ -40,6 +74,25 @@ const IconClose = () => (
 const IconPlus = () => (
   <svg fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="w-4 h-4">
     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+  </svg>
+)
+
+const IconArrowUp = () => (
+  <svg fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="w-3.5 h-3.5">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+  </svg>
+)
+
+const IconArrowDown = () => (
+  <svg fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="w-3.5 h-3.5">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+  </svg>
+)
+
+const IconWand = () => (
+  <svg fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" className="w-4 h-4">
+    <path strokeLinecap="round" strokeLinejoin="round"
+      d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.847-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.847.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
   </svg>
 )
 
@@ -291,8 +344,88 @@ const AssignOrdersModal = ({ route, onClose, onSaved }) => {
   )
 }
 
+/* ── Modal: preview de rota automática ── */
+const AutoRoutePreviewModal = ({ route, onClose, onApply }) => {
+  const suggested = useMemo(() => suggestOrder(route.orders || []), [route])
+  const [applying, setApplying] = useState(false)
+  const [err,      setErr]      = useState('')
+
+  const sameAsCurrent = useMemo(() => {
+    const current = route.orders.map(o => o.id).join(',')
+    const next    = suggested.map(o => o.id).join(',')
+    return current === next
+  }, [route.orders, suggested])
+
+  const handleApply = async () => {
+    setApplying(true)
+    setErr('')
+    try {
+      await onApply(suggested.map(o => o.id))
+    } catch (e) {
+      setErr(e.response?.data?.message ?? 'Erro ao aplicar ordem.')
+    } finally {
+      setApplying(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-4" onClick={e => e.target === e.currentTarget && !applying && onClose()}>
+      <div className="bg-surface border border-border rounded-lg w-full max-w-[560px] max-h-[85svh] flex flex-col overflow-hidden shadow-elevated">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+          <div>
+            <h2 className="text-[0.9rem] font-bold text-primary m-0">Melhor rota automática — {route.name}</h2>
+            <p className="text-xs text-muted mt-0.5 m-0">
+              Sugestão por janela de entrega + proximidade. Apenas visualização — não substitui a ordem oficial até aplicar.
+            </p>
+          </div>
+          <button className="bg-transparent border-none text-muted cursor-pointer p-1 hover:text-primary" onClick={onClose} disabled={applying}>
+            <IconClose />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 py-3">
+          {suggested.length === 0 && <p className="text-center py-8 text-muted text-sm">Sem paradas para sugerir.</p>}
+          {suggested.map((o, i) => (
+            <div key={o.id} className="flex items-center gap-3 py-2 border-b border-border last:border-b-0">
+              <span className="w-7 h-7 rounded-full bg-input border border-border-input flex items-center justify-center text-xs font-bold text-primary shrink-0">{i + 1}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-mono text-xs font-bold text-secondary">#{o.id}</span>
+                  <span className="text-sm text-primary">{o.clientName || '—'}</span>
+                </div>
+                <p className="text-xs text-muted m-0 mt-0.5 truncate">{o.address || '—'}</p>
+                {o.deliveryWindowStart && (
+                  <p className="text-[0.6875rem] text-secondary m-0 mt-0.5">Janela {o.deliveryWindowStart}–{o.deliveryWindowEnd}</p>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {err && <p className="text-[0.8125rem] text-error bg-error-bg border border-[rgba(139,0,0,0.25)] m-3 rounded px-3.5 py-2.5">{err}</p>}
+
+        <div className="flex gap-2 justify-between items-center px-5 py-4 border-t border-border">
+          <span className="text-xs text-muted">{sameAsCurrent ? 'Já está nesta ordem.' : 'Ordem diferente da atual.'}</span>
+          <div className="flex gap-2">
+            <button className="bg-transparent border border-border-input rounded px-4 py-2 text-[0.8125rem] font-semibold text-secondary cursor-pointer hover:text-primary disabled:opacity-40" onClick={onClose} disabled={applying}>
+              Fechar
+            </button>
+            <button
+              className="bg-red border-none rounded px-4 py-2 text-[0.8125rem] font-bold uppercase tracking-[0.05em] text-on-red cursor-pointer hover:bg-red-h disabled:opacity-40 disabled:cursor-not-allowed"
+              onClick={handleApply}
+              disabled={applying || sameAsCurrent || suggested.length === 0}
+            >
+              {applying ? 'A aplicar…' : 'Aplicar ordem sugerida'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /* ── Card de rota ── */
-const RouteCard = ({ route, onEdit, onDelete, onAssign, onUnassign, onAdvance }) => {
+const RouteCard = ({ route, onEdit, onDelete, onAssign, onUnassign, onAdvance, onMove, onPreviewAuto }) => {
   const driverLabel = route.driver?.name?.trim() || route.driver?.email || '—'
   const next = NEXT_STATUS[route.status]
 
@@ -329,6 +462,15 @@ const RouteCard = ({ route, onEdit, onDelete, onAssign, onUnassign, onAdvance })
           >
             <IconPlus /> Atribuir pedidos
           </button>
+          {route.orders?.length > 1 && (
+            <button
+              className="inline-flex items-center gap-1.5 bg-transparent border border-border rounded px-3 py-1.5 text-xs font-semibold text-info cursor-pointer hover:border-info transition-colors"
+              onClick={() => onPreviewAuto(route)}
+              title="Ver melhor rota automática (preview)"
+            >
+              <IconWand /> Ver melhor rota automática
+            </button>
+          )}
           <button
             className="bg-transparent border border-border rounded px-3 py-1.5 text-xs font-semibold text-secondary cursor-pointer hover:border-muted hover:text-primary"
             onClick={() => onEdit(route)}
@@ -352,21 +494,40 @@ const RouteCard = ({ route, onEdit, onDelete, onAssign, onUnassign, onAdvance })
             <p className="text-[0.625rem] font-bold uppercase tracking-wider text-muted m-0 mb-1">
               Pedidos ({route.orders.length}) · {route.orders.reduce((s, o) => s + (o.totalBoxes || 0), 0)} cxs
             </p>
-            {route.orders.map(o => (
+            {route.orders.map((o, i) => (
               <div key={o.id} className="flex items-center justify-between gap-3 bg-hover border border-border rounded px-3 py-2">
+                <span className="w-6 h-6 rounded-full bg-input border border-border-input flex items-center justify-center text-[0.6875rem] font-bold text-primary shrink-0">{i + 1}</span>
                 <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
                   <span className="font-mono text-xs font-bold text-secondary">#{o.id}</span>
                   <span className="text-sm text-primary truncate">{o.clientName || '—'}</span>
                   <span className="text-[0.625rem] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-input text-secondary whitespace-nowrap">{o.status}</span>
                   <span className="text-xs text-muted">{o.totalBoxes} cxs</span>
                 </div>
-                <button
-                  className="bg-transparent border-none text-muted cursor-pointer p-1 hover:text-error shrink-0"
-                  onClick={() => onUnassign(route.id, o.id)}
-                  title="Remover desta rota"
-                >
-                  <IconClose />
-                </button>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    className="bg-transparent border border-border rounded p-1 text-muted cursor-pointer hover:text-primary hover:border-muted disabled:opacity-30 disabled:cursor-not-allowed"
+                    onClick={() => onMove(route.id, i, i - 1)}
+                    disabled={i === 0}
+                    title="Mover para cima"
+                  >
+                    <IconArrowUp />
+                  </button>
+                  <button
+                    className="bg-transparent border border-border rounded p-1 text-muted cursor-pointer hover:text-primary hover:border-muted disabled:opacity-30 disabled:cursor-not-allowed"
+                    onClick={() => onMove(route.id, i, i + 1)}
+                    disabled={i === route.orders.length - 1}
+                    title="Mover para baixo"
+                  >
+                    <IconArrowDown />
+                  </button>
+                  <button
+                    className="bg-transparent border-none text-muted cursor-pointer p-1 hover:text-error"
+                    onClick={() => onUnassign(route.id, o.id)}
+                    title="Remover desta rota"
+                  >
+                    <IconClose />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -384,6 +545,7 @@ const AdminRoutes = () => {
   const [error,     setError]     = useState('')
   const [editing,   setEditing]   = useState(null)   // null | route | 'new'
   const [assigning, setAssigning] = useState(null)
+  const [previewAuto, setPreviewAuto] = useState(null)
   const [statusFilter, setStatusFilter] = useState('ALL')
 
   const load = useCallback(() => {
@@ -444,6 +606,34 @@ const AdminRoutes = () => {
     } catch (e) {
       alert(e.response?.data?.message ?? 'Erro ao atualizar status.')
     }
+  }
+
+  const handleMove = async (routeId, fromIdx, toIdx) => {
+    const route = routes.find(r => r.id === routeId)
+    if (!route || !route.orders || toIdx < 0 || toIdx >= route.orders.length) return
+
+    const reordered = [...route.orders]
+    const [moved] = reordered.splice(fromIdx, 1)
+    reordered.splice(toIdx, 0, moved)
+
+    // Optimistic UI
+    setRoutes(prev => prev.map(r => r.id === routeId ? { ...r, orders: reordered } : r))
+
+    try {
+      const updated = await reorderRouteStops(routeId, reordered.map(o => o.id))
+      setRoutes(prev => prev.map(r => r.id === updated.id ? updated : r))
+    } catch (e) {
+      // Reverte em caso de erro
+      setRoutes(prev => prev.map(r => r.id === routeId ? { ...r, orders: route.orders } : r))
+      alert(e.response?.data?.message ?? 'Erro ao reordenar paradas.')
+    }
+  }
+
+  const handleApplyAutoOrder = async (orderIds) => {
+    if (!previewAuto) return
+    const updated = await reorderRouteStops(previewAuto.id, orderIds)
+    setRoutes(prev => prev.map(r => r.id === updated.id ? updated : r))
+    setPreviewAuto(null)
   }
 
   const FILTERS = [
@@ -517,6 +707,8 @@ const AdminRoutes = () => {
               onAssign={setAssigning}
               onUnassign={handleUnassign}
               onAdvance={handleAdvance}
+              onMove={handleMove}
+              onPreviewAuto={setPreviewAuto}
             />
           ))}
         </div>
@@ -536,6 +728,14 @@ const AdminRoutes = () => {
           route={assigning}
           onClose={() => setAssigning(null)}
           onSaved={handleAssigned}
+        />
+      )}
+
+      {previewAuto && (
+        <AutoRoutePreviewModal
+          route={previewAuto}
+          onClose={() => setPreviewAuto(null)}
+          onApply={handleApplyAutoOrder}
         />
       )}
     </div>

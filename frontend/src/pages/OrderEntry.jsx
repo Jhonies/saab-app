@@ -59,6 +59,7 @@ const OrderEntry = () => {
 
   const [stock,      setStock]      = useState(null)
   const [stockLoading, setStockLoading] = useState(false)
+  const [stockFetchedAt, setStockFetchedAt] = useState(null)
 
   const [cart,       setCart]       = useState([])
 
@@ -67,6 +68,9 @@ const OrderEntry = () => {
   const [success,    setSuccess]    = useState('')
 
   const qtyRef = useRef(null)
+
+  /* ── Confirmação de mistura de unidades (mesmo produto, unidade diferente) ── */
+  const [unitConflictPrompt, setUnitConflictPrompt] = useState(null) // { existingType, newType }
 
   useEffect(() => {
     Promise.all([fetchProducts(), fetchClients()])
@@ -96,11 +100,11 @@ const OrderEntry = () => {
   }, [searchQuery, products])
 
   useEffect(() => {
-    if (!selectedProduct) { setStock(null); return }
+    if (!selectedProduct) { setStock(null); setStockFetchedAt(null); return }
     setStockLoading(true)
     fetchProductStock(selectedProduct.id)
-      .then(setStock)
-      .catch(() => setStock(null))
+      .then(s => { setStock(s); setStockFetchedAt(Date.now()) })
+      .catch(() => { setStock(null); setStockFetchedAt(null) })
       .finally(() => setStockLoading(false))
   }, [selectedProduct])
 
@@ -157,11 +161,7 @@ const OrderEntry = () => {
     }
   }
 
-  const handleAddItem = () => {
-    if (!canAdd) return
-    setError('')
-    setSuccess('')
-
+  const pushItemToCart = () => {
     setCart(prev => [...prev, {
       productId:   selectedProduct.id,
       quantity:    qty,
@@ -177,6 +177,30 @@ const OrderEntry = () => {
     setPrice('')
     setSearchQuery('')
     setShowDropdown(false)
+  }
+
+  const handleAddItem = () => {
+    if (!canAdd) return
+    setError('')
+    setSuccess('')
+
+    /* Se já existe o mesmo produto no carrinho com outra unidade, pedir confirmação */
+    const existing = cart.find(item => item.productId === selectedProduct.id)
+    if (existing && existing.priceType !== priceType) {
+      setUnitConflictPrompt({ existingType: existing.priceType, newType: priceType })
+      return
+    }
+
+    pushItemToCart()
+  }
+
+  const confirmUnitConflict = () => {
+    setUnitConflictPrompt(null)
+    pushItemToCart()
+  }
+
+  const cancelUnitConflict = () => {
+    setUnitConflictPrompt(null)
   }
 
   /* ── Loja selection ── */
@@ -218,6 +242,34 @@ const OrderEntry = () => {
 
     setSubmitting(true)
     try {
+      /* Revalidação de estoque antes de finalizar — bloqueia se houver divergência */
+      const qtyByProduct = cart.reduce((acc, item) => {
+        acc[item.productId] = (acc[item.productId] || 0) + item.quantity
+        return acc
+      }, {})
+
+      const productIds = Object.keys(qtyByProduct).map(Number)
+      const freshStocks = await Promise.all(
+        productIds.map(pid => fetchProductStock(pid).catch(() => null))
+      )
+
+      const divergences = []
+      productIds.forEach((pid, idx) => {
+        const fresh = freshStocks[idx]
+        if (!fresh) return
+        const requested = qtyByProduct[pid]
+        if (fresh.totalBoxes < requested) {
+          const item = cart.find(i => i.productId === pid)
+          divergences.push(`${item?.productName ?? `Produto #${pid}`}: solicitado ${requested} cxs, disponível ${fresh.totalBoxes} cxs.`)
+        }
+      })
+
+      if (divergences.length > 0) {
+        setError(`Estoque alterou desde a seleção: ${divergences.join(' ')} Ajuste o pedido e tente novamente.`)
+        setSubmitting(false)
+        return
+      }
+
       let resolvedStoreId = selectedClient?.id || null
 
       if (!resolvedStoreId && isNewClient) {
@@ -398,7 +450,7 @@ const OrderEntry = () => {
 
               {selectedProduct && !stockLoading && stock && (
                 <p className={`text-xs m-0 py-1.5 px-2.5 rounded bg-hover border border-border ${effectiveStock === 0 ? 'text-error' : effectiveStock <= 20 ? 'text-warn' : 'text-ok'}`}>
-                  Stock disponível: {effectiveStock} cxs
+                  Estoque disponível: {effectiveStock} caixas (atualizado agora)
                   {effectiveStock <= 20 && effectiveStock > 0 ? ' — Stock baixo' : ''}
                 </p>
               )}
@@ -549,6 +601,48 @@ const OrderEntry = () => {
         </div>
 
       </div>
+
+      {/* ── Modal: confirmação de mistura de unidades ── */}
+      {unitConflictPrompt && (
+        <div
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-4"
+          onClick={(e) => e.target === e.currentTarget && cancelUnitConflict()}
+        >
+          <div className="bg-surface border border-border rounded-md shadow-elevated w-full max-w-[460px] flex flex-col gap-4 p-6">
+            <h3 className="text-base font-bold text-primary m-0">Unidade diferente detetada</h3>
+            <p className="text-sm text-secondary m-0 leading-relaxed">
+              Você está adicionando o mesmo produto com outra unidade (cx/lb/un). Deseja continuar?
+            </p>
+            <p className="text-xs text-muted m-0">
+              Já existe no carrinho com unidade <strong className="text-primary">{
+                unitConflictPrompt.existingType === 'PER_LB' ? 'libra (lb)'
+                : unitConflictPrompt.existingType === 'PER_BOX' ? 'caixa (cx)'
+                : 'unidade (un)'
+              }</strong>. Está a adicionar com unidade <strong className="text-primary">{
+                unitConflictPrompt.newType === 'PER_LB' ? 'libra (lb)'
+                : unitConflictPrompt.newType === 'PER_BOX' ? 'caixa (cx)'
+                : 'unidade (un)'
+              }</strong>. Será adicionado como item separado.
+            </p>
+            <div className="flex gap-3 justify-end mt-2">
+              <button
+                type="button"
+                onClick={cancelUnitConflict}
+                className="bg-transparent border border-border-input text-secondary rounded px-4 py-2 text-sm font-bold uppercase tracking-[0.05em] cursor-pointer transition-colors duration-150 hover:border-muted hover:text-primary"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmUnitConflict}
+                className="bg-red border-none text-on-red rounded px-4 py-2 text-sm font-bold uppercase tracking-[0.05em] cursor-pointer transition-colors duration-150 hover:bg-red-h"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )

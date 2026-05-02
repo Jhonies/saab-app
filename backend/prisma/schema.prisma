@@ -123,6 +123,8 @@ model Order {
   route               String?                                  // legacy (texto livre) — mantido para retrocompat
   driverId            Int?
   driver              User?        @relation("OrderDriver", fields: [driverId], references: [id])
+  // Ordem manual da parada dentro da rota (definida pelo admin) — fallback para id
+  stopOrder           Int          @default(0)
   // Endereço de entrega (apenas DELIVERY)
   address             String      @default("")
   lat                 Float?
@@ -157,19 +159,20 @@ model Order {
 }
 
 model OrderItem {
-  id          Int         @id @default(autoincrement())
-  orderId     Int
-  order       Order       @relation(fields: [orderId], references: [id])
-  containerId Int
-  container   Container   @relation(fields: [containerId], references: [id])
-  productId   Int
-  product     Product     @relation("OrderItemProduct", fields: [productId], references: [id])
-  quantity    Int
-  priceType   String      @default("PER_LB")  // "PER_LB" | "PER_BOX"
-  pricePerLb  Decimal?    @db.Decimal(10, 4)   // preenchido pelo vendedor se PER_LB
-  pricePerBox Decimal?    @db.Decimal(10, 2)   // preenchido pelo vendedor se PER_BOX
-  weightLb    Decimal     @default(0) @db.Decimal(10, 4) // soma das boxWeights (calculado ao embalar)
-  boxWeights  BoxWeight[]
+  id           Int         @id @default(autoincrement())
+  orderId      Int
+  order        Order       @relation(fields: [orderId], references: [id])
+  containerId  Int
+  container    Container   @relation(fields: [containerId], references: [id])
+  productId    Int
+  product      Product     @relation("OrderItemProduct", fields: [productId], references: [id])
+  quantity     Int
+  priceType    String      @default("PER_LB")  // "PER_LB" | "PER_BOX" | "PER_UNIT"
+  pricePerLb   Decimal?    @db.Decimal(10, 4)   // preenchido pelo vendedor se PER_LB
+  pricePerBox  Decimal?    @db.Decimal(10, 2)   // preenchido pelo vendedor se PER_BOX
+  pricePerUnit Decimal?    @db.Decimal(10, 2)   // preenchido pelo vendedor se PER_UNIT
+  weightLb     Decimal     @default(0) @db.Decimal(10, 4) // soma das boxWeights (calculado ao embalar)
+  boxWeights   BoxWeight[]
 }
 
 model BoxWeight {

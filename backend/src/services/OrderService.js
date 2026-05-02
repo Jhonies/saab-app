@@ -109,12 +109,13 @@ const createOrder = async ({ clientId, storeId, clientName, address: inputAddres
       }
 
       itemsToCreate.push({
-        containerId: refContainer.id,
-        productId:   item.productId,
-        quantity:    item.quantity,
-        priceType:   item.priceType || 'PER_LB',
-        pricePerLb:  item.pricePerLb ?? null,
-        pricePerBox: item.pricePerBox ?? null,
+        containerId:  refContainer.id,
+        productId:    item.productId,
+        quantity:     item.quantity,
+        priceType:    item.priceType || 'PER_LB',
+        pricePerLb:   item.pricePerLb ?? null,
+        pricePerBox:  item.pricePerBox ?? null,
+        pricePerUnit: item.pricePerUnit ?? null,
       })
 
       totalBoxes += item.quantity
