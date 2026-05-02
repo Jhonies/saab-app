@@ -6,6 +6,7 @@ const { z } = require('zod')
  */
 const createOrderSchema = z.object({
   clientId:     z.number().int().positive().nullish(),
+  storeId:      z.number().int().positive().nullish(),
   clientName:   z.string().min(1, 'clientName é obrigatório.').nullish(),
   address:      z.string().nullish(),
   deliveryType: z.enum(['DELIVERY', 'PICKUP']).default('DELIVERY'),
@@ -17,8 +18,8 @@ const createOrderSchema = z.object({
     pricePerBox: z.number().positive('pricePerBox deve ser positivo.').nullish(),
   })).min(1, 'items[] é obrigatório e não pode ser vazio.'),
 }).refine(
-  d => d.clientId || d.clientName,
-  { message: 'clientId ou clientName é obrigatório.' }
+  d => d.storeId || d.clientId || d.clientName,
+  { message: 'storeId, clientId ou clientName é obrigatório.' }
 )
 
 /* ── Reassign Route/Driver ──

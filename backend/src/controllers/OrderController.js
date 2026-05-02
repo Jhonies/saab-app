@@ -11,11 +11,12 @@ const createOrder = async (req, res) => {
     return res.status(400).json({ message: msg })
   }
 
-  const { clientId, clientName, address, items, deliveryType } = parsed.data
+  const { clientId, storeId, clientName, address, items, deliveryType } = parsed.data
 
   try {
     const order = await OrderService.createOrder({
       clientId:     clientId ?? null,
+      storeId:      storeId ?? null,
       clientName:   clientName?.trim() || '',
       address:      address?.trim() || null,
       deliveryType: deliveryType || 'DELIVERY',

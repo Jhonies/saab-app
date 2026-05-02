@@ -98,6 +98,7 @@ model Client {
   id        Int      @id @default(autoincrement())
   name      String
   address   String   @default("")
+  orders    Order[]  @relation("OrderStore")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -109,7 +110,9 @@ model Order {
   id                  Int         @id @default(autoincrement())
   clientId            Int?                              // opcional (legacy)
   client              User?        @relation(fields: [clientId], references: [id])
-  clientName          String       @default("")          // nome da loja (vendedor digita)
+  storeId             Int?                              // FK para Client (catálogo de lojas)
+  store               Client?      @relation("OrderStore", fields: [storeId], references: [id])
+  clientName          String       @default("")          // nome da loja (snapshot do nome)
   status              String      @default("PENDING")
   totalBoxes          Int
   // Entrega vs Retirada
@@ -146,6 +149,7 @@ model Order {
 
   @@index([status])
   @@index([clientId])
+  @@index([storeId])
   @@index([driverId])
   @@index([routeId])
   @@index([createdAt])

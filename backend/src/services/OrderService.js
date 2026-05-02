@@ -2,6 +2,7 @@ const prisma = require('../lib/prisma')
 
 const INCLUDE_FULL = {
   client:    { select: { id: true, email: true } },
+  store:     { select: { id: true, name: true, address: true } },
   driver:    { select: { id: true, name: true, email: true } },
   routePlan: { select: { id: true, name: true, region: true, status: true } },
   items:  {
@@ -50,9 +51,18 @@ const assertValidDriver = async (tx, driverId) => {
  *
  * Rota/motorista NÃO são atribuídos aqui — são definidos numa etapa separada via módulo de Rotas.
  */
-const createOrder = async ({ clientId, clientName, address: inputAddress, deliveryType, items, updatedById }) => {
+const createOrder = async ({ clientId, storeId, clientName, address: inputAddress, deliveryType, items, updatedById }) => {
   return prisma.$transaction(async (tx) => {
     const isPickup = deliveryType === 'PICKUP'
+
+    /* Resolver Client (catálogo de lojas) — usado para snapshot de nome/endereço */
+    let store = null
+    if (storeId != null) {
+      store = await tx.client.findUnique({ where: { id: Number(storeId) } })
+      if (!store) {
+        throw Object.assign(new Error('Loja (Client) não encontrada.'), { status: 404 })
+      }
+    }
 
     /* Agregar quantidade total por produto (caso o pedido tenha o mesmo produto duas vezes) */
     const qtyByProduct = new Map()
@@ -110,7 +120,9 @@ const createOrder = async ({ clientId, clientName, address: inputAddress, delive
       totalBoxes += item.quantity
     }
 
-    /* Resolver endereço (apenas se DELIVERY; PICKUP fica vazio) */
+    /* Resolver endereço (apenas se DELIVERY; PICKUP fica vazio)
+     * Prioridade: inputAddress (override manual) > store.address > User.address (legacy) > depot fallback
+     */
     let address = ''
     let lat = null
     let lon = null
@@ -122,6 +134,8 @@ const createOrder = async ({ clientId, clientName, address: inputAddress, delive
 
       if (inputAddress) {
         address = inputAddress
+      } else if (store?.address) {
+        address = store.address
       } else if (clientId) {
         const client = await tx.user.findUnique({
           where:  { id: clientId },
@@ -138,7 +152,8 @@ const createOrder = async ({ clientId, clientName, address: inputAddress, delive
     return tx.order.create({
       data: {
         clientId,
-        clientName,
+        storeId:      store?.id ?? null,
+        clientName:   clientName || store?.name || '',
         status:       'PENDING',
         deliveryType: isPickup ? 'PICKUP' : 'DELIVERY',
         totalBoxes,

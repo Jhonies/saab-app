@@ -218,16 +218,16 @@ const OrderEntry = () => {
 
     setSubmitting(true)
     try {
-      let resolvedClientId = selectedClient?.id || null
+      let resolvedStoreId = selectedClient?.id || null
 
-      if (!resolvedClientId && isNewClient) {
+      if (!resolvedStoreId && isNewClient) {
         const newClient = await createClient({ name: clientName })
         setClients(prev => [...prev, newClient].sort((a, b) => a.name.localeCompare(b.name)))
-        resolvedClientId = newClient.id
+        resolvedStoreId = newClient.id
       }
 
       const order = await createOrder({
-        clientId: resolvedClientId || undefined,
+        storeId: resolvedStoreId || undefined,
         clientName,
         deliveryType,
         items: cart.map(({ productId, quantity, priceType, pricePerLb, pricePerBox, pricePerUnit }) => ({
