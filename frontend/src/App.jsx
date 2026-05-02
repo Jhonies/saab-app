@@ -22,6 +22,7 @@ import AdminClients      from './pages/AdminClients'
 import Notices           from './pages/Notices'
 import GtinManager       from './pages/GtinManager'
 import StockOverview     from './pages/StockOverview'
+import AdminRoutes       from './pages/AdminRoutes'
 const App = () => {
   return (
     <AuthProvider>
@@ -50,7 +51,8 @@ const App = () => {
             <Route path="gtin"          element={<GtinManager />} />
             <Route path="orders/new"    element={<OrderEntry />} />
             <Route path="logistics"     element={<Logistics />} />
-            <Route path="routes"        element={<DriverRoutes />} />
+            <Route path="routes"        element={<AdminRoutes />} />
+            <Route path="routes/daily"  element={<DriverRoutes />} />
             <Route path="products"      element={<Navigate to="/admin/stock" replace />} />
             <Route path="clients"       element={<AdminClients />} />
             <Route path="users"         element={<AdminUsers />} />
@@ -75,6 +77,7 @@ const App = () => {
             <Route path="containers"    element={<Inventory />} />
             <Route path="gtin"          element={<GtinManager />} />
             <Route path="logistics"     element={<Logistics />} />
+            <Route path="routes"        element={<AdminRoutes />} />
             <Route path="notices"       element={<Notices />} />
             <Route path="*"             element={<Navigate to="dashboard" replace />} />
           </Route>

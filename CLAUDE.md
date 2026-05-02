@@ -247,9 +247,17 @@ PICKUP:   PENDING -> CONFIRMED -> SEPARATING -> READY ----------------> DELIVERE
 | DELETE | `/:id`      | Yes  | ADMIN, EXPEDICAO                   |
 
 ### Routes (`/routes`)
-| Method | Path     | Auth | Roles           |
-|--------|----------|------|-----------------|
-| GET    | `/daily` | Yes  | ADMIN, MOTORISTA |
+| Method | Path                       | Auth | Roles                       |
+|--------|----------------------------|------|------------------------------|
+| GET    | `/daily`                   | Yes  | ADMIN, MOTORISTA             |
+| GET    | `/assignable-orders`       | Yes  | ADMIN, EXPEDICAO             |
+| GET    | `/`                        | Yes  | ADMIN, EXPEDICAO, VENDEDOR   |
+| POST   | `/`                        | Yes  | ADMIN, EXPEDICAO             |
+| GET    | `/:id`                     | Yes  | ADMIN, EXPEDICAO, VENDEDOR   |
+| PATCH  | `/:id`                     | Yes  | ADMIN, EXPEDICAO             |
+| DELETE | `/:id`                     | Yes  | ADMIN, EXPEDICAO             |
+| POST   | `/:id/assign-orders`       | Yes  | ADMIN, EXPEDICAO             |
+| DELETE | `/:id/orders/:orderId`     | Yes  | ADMIN, EXPEDICAO             |
 
 ### System
 | Method | Path      | Auth | Purpose          |
@@ -312,10 +320,16 @@ Container    -> id, label, zone (enum ContainerZone), capacity, quantity, unit,
 Client       -> id, name, address  — modelo independente, sem ligacao a User
 
 Order        -> id, clientName (string), clientId? (legacy), status, totalBoxes, weightLb,
-                deliveryType (DELIVERY|PICKUP), route? (string livre), driverId? (FK User MOTORISTA),
+                deliveryType (DELIVERY|PICKUP),
+                routeId? (FK Route — nova relação), route? (texto legacy),
+                driverId? (FK User MOTORISTA),
                 address, lat/lon, deliveryWindowStart/End,
                 deliveredAt/By, separatedAt/By, packedAt/By, loadedAt,
                 updatedById?, lastStatusAt?
+
+Route        -> id, name, region, status (DRAFT|READY|IN_TRANSIT|COMPLETED),
+                driverId? (FK User MOTORISTA), scheduledFor?, notes,
+                createdById?, orders[]
 
 OrderItem    -> id, orderId, containerId, productId, quantity, weightLb,
                 priceType (PER_LB|PER_BOX), pricePerLb?, pricePerBox?, boxWeights[]

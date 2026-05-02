@@ -1,10 +1,27 @@
 const { Router } = require('express')
 const { authMiddleware, authorizeRoles } = require('../middlewares/authMiddleware')
 const { getDailyRoute } = require('../controllers/RouteController')
+const RoutePlan = require('../controllers/RoutePlanController')
 
 const router = Router()
 
 router.use(authMiddleware)
+
+/* ── Rota diária do motorista (cálculo dinâmico) ── */
 router.get('/daily', authorizeRoles('ADMIN', 'MOTORISTA'), getDailyRoute)
+
+/* ── Pedidos disponíveis para atribuição ── */
+router.get('/assignable-orders', authorizeRoles('ADMIN', 'EXPEDICAO'), RoutePlan.listAssignableOrders)
+
+/* ── CRUD de Rotas ── */
+router.get('/',    authorizeRoles('ADMIN', 'EXPEDICAO', 'VENDEDOR'), RoutePlan.list)
+router.post('/',   authorizeRoles('ADMIN', 'EXPEDICAO'),             RoutePlan.create)
+router.get('/:id', authorizeRoles('ADMIN', 'EXPEDICAO', 'VENDEDOR'), RoutePlan.getOne)
+router.patch('/:id',  authorizeRoles('ADMIN', 'EXPEDICAO'), RoutePlan.update)
+router.delete('/:id', authorizeRoles('ADMIN', 'EXPEDICAO'), RoutePlan.remove)
+
+/* ── Assign / Unassign ── */
+router.post('/:id/assign-orders',         authorizeRoles('ADMIN', 'EXPEDICAO'), RoutePlan.assignOrders)
+router.delete('/:id/orders/:orderId',     authorizeRoles('ADMIN', 'EXPEDICAO'), RoutePlan.unassignOrder)
 
 module.exports = router

@@ -19,9 +19,29 @@ model User {
   lon          Float?
   orders       Order[]
   driverOrders Order[]   @relation("OrderDriver")
+  driverRoutes Route[]   @relation("RouteDriver")
   notices      Notice[]  @relation("NoticeCreator")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+}
+
+// Valores válidos: "DRAFT" | "READY" | "IN_TRANSIT" | "COMPLETED"
+model Route {
+  id           Int       @id @default(autoincrement())
+  name         String                                    // ex: "Orlando 2", "Miami-Jax"
+  region       String    @default("")                    // ex: "Central FL", "South FL"
+  status       String    @default("DRAFT")               // DRAFT|READY|IN_TRANSIT|COMPLETED
+  driverId     Int?
+  driver       User?     @relation("RouteDriver", fields: [driverId], references: [id])
+  scheduledFor DateTime?
+  notes        String    @default("")
+  createdById  Int?
+  orders       Order[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([status])
+  @@index([driverId])
 }
 
 model Product {
@@ -94,8 +114,10 @@ model Order {
   totalBoxes          Int
   // Entrega vs Retirada
   deliveryType        String      @default("DELIVERY")  // "DELIVERY" | "PICKUP"
-  // Rota/Motorista (apenas DELIVERY)
-  route               String?                                  // ex: "Miami-Orlando-Jacksonville", "Orlando 2"
+  // Rota/Motorista (apenas DELIVERY) — atribuídos numa etapa separada (módulo Rotas)
+  routeId             Int?
+  routePlan           Route?       @relation(fields: [routeId], references: [id])
+  route               String?                                  // legacy (texto livre) — mantido para retrocompat
   driverId            Int?
   driver              User?        @relation("OrderDriver", fields: [driverId], references: [id])
   // Endereço de entrega (apenas DELIVERY)
@@ -125,6 +147,7 @@ model Order {
   @@index([status])
   @@index([clientId])
   @@index([driverId])
+  @@index([routeId])
   @@index([createdAt])
   @@index([status, createdAt])
 }

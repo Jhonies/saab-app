@@ -1,8 +1,9 @@
 const prisma = require('../lib/prisma')
 
 const INCLUDE_FULL = {
-  client: { select: { id: true, email: true } },
-  driver: { select: { id: true, name: true, email: true } },
+  client:    { select: { id: true, email: true } },
+  driver:    { select: { id: true, name: true, email: true } },
+  routePlan: { select: { id: true, name: true, region: true, status: true } },
   items:  {
     include: {
       product:    true,
@@ -46,14 +47,12 @@ const assertValidDriver = async (tx, driverId) => {
  * Validação de stock: agrega quantidade pedida por productId e compara com Product.stockGeneral.
  * Não desconta stockGeneral nem Container.quantity na criação — desconto acontece em packOrder (READY).
  * Containers são apenas referência inicial (primeiro container do produto); expedição faz baixa manual depois.
+ *
+ * Rota/motorista NÃO são atribuídos aqui — são definidos numa etapa separada via módulo de Rotas.
  */
-const createOrder = async ({ clientId, clientName, address: inputAddress, deliveryType, route, driverId, items, updatedById }) => {
+const createOrder = async ({ clientId, clientName, address: inputAddress, deliveryType, items, updatedById }) => {
   return prisma.$transaction(async (tx) => {
     const isPickup = deliveryType === 'PICKUP'
-
-    if (!isPickup) {
-      await assertValidDriver(tx, driverId)
-    }
 
     /* Agregar quantidade total por produto (caso o pedido tenha o mesmo produto duas vezes) */
     const qtyByProduct = new Map()
@@ -142,8 +141,6 @@ const createOrder = async ({ clientId, clientName, address: inputAddress, delive
         clientName,
         status:       'PENDING',
         deliveryType: isPickup ? 'PICKUP' : 'DELIVERY',
-        route:        isPickup ? null : (route || null),
-        driverId:     isPickup ? null : (driverId ?? null),
         totalBoxes,
         address,
         lat,
@@ -452,9 +449,10 @@ const loadOrder = async (id, userId, { lastStatusAt: clientTs } = {}) => {
 }
 
 /* ── Reassign route/driver (admin) ──
- * Permite editar route e driverId. Só faz sentido para DELIVERY.
+ * Permite editar route, routeId e driverId. Só faz sentido para DELIVERY.
+ * Se routeId for fornecido, copia automaticamente nome e motorista da Rota.
  */
-const reassignRoute = async (id, { route, driverId }, userId) => {
+const reassignRoute = async (id, { routeId, route, driverId }, userId) => {
   return prisma.$transaction(async (tx) => {
     const order = await tx.order.findUnique({ where: { id: Number(id) } })
     if (!order) {
@@ -467,13 +465,27 @@ const reassignRoute = async (id, { route, driverId }, userId) => {
       )
     }
 
+    const data = { updatedById: Number(userId) }
+
+    if (routeId !== undefined) {
+      if (routeId === null) {
+        data.routeId = null
+      } else {
+        const routeRow = await tx.route.findUnique({ where: { id: Number(routeId) } })
+        if (!routeRow) {
+          throw Object.assign(new Error('Rota não encontrada.'), { status: 404 })
+        }
+        data.routeId  = routeRow.id
+        data.route    = routeRow.name
+        if (driverId === undefined) data.driverId = routeRow.driverId ?? null
+      }
+    }
+
     if (driverId !== undefined && driverId !== null) {
       await assertValidDriver(tx, driverId)
     }
-
-    const data = { updatedById: Number(userId) }
-    if (route !== undefined)    data.route    = route || null
     if (driverId !== undefined) data.driverId = driverId ?? null
+    if (route !== undefined && routeId === undefined) data.route = route || null
 
     return tx.order.update({
       where: { id: Number(id) },

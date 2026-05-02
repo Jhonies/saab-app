@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { fetchOrders, openInvoice, updateOrderStatus, deliverOrder, reassignOrderRoute } from '../services/orderService'
 import { fetchDrivers } from '../services/userService'
+import { fetchRoutes } from '../services/routePlanService'
 
 /* ────────────────────────────────────────
    Mock de endereços e coordenadas
@@ -149,21 +150,53 @@ const RouteModal = ({ order, onClose }) => {
   )
 }
 
-/* ── ReassignModal: editar rota + motorista ── */
+/* ── ReassignModal: selecionar rota cadastrada ── */
+const ROUTE_STATUS_LABEL = {
+  DRAFT:      'Em preparo',
+  READY:      'Pronta',
+  IN_TRANSIT: 'Em trânsito',
+  COMPLETED:  'Concluída',
+}
+
+const ROUTE_STATUS_BADGE = {
+  DRAFT:      'bg-warn-bg text-warn',
+  READY:      'bg-ok-bg text-ok',
+  IN_TRANSIT: 'bg-info-bg text-info',
+  COMPLETED:  'bg-hover text-secondary',
+}
+
 const ReassignModal = ({ order, drivers, onClose, onSaved }) => {
-  const [route,    setRoute]    = useState(order.route ?? '')
-  const [driverId, setDriverId] = useState(order.driverId ? String(order.driverId) : '')
-  const [saving,   setSaving]   = useState(false)
-  const [err,      setErr]      = useState('')
+  const [routes,         setRoutes]         = useState([])
+  const [routesLoading,  setRoutesLoading]  = useState(true)
+  const [selectedRoute,  setSelectedRoute]  = useState(order.routeId ? String(order.routeId) : '')
+  const [overrideDriver, setOverrideDriver] = useState(false)
+  const [driverId,       setDriverId]       = useState(order.driverId ? String(order.driverId) : '')
+  const [saving,         setSaving]         = useState(false)
+  const [err,            setErr]            = useState('')
+
+  useEffect(() => {
+    fetchRoutes()
+      .then(rs => {
+        // Mostra apenas rotas que ainda não foram concluídas
+        setRoutes(rs.filter(r => r.status !== 'COMPLETED'))
+      })
+      .catch(() => setErr('Erro ao carregar rotas.'))
+      .finally(() => setRoutesLoading(false))
+  }, [])
+
+  const activeRoute = routes.find(r => String(r.id) === selectedRoute)
 
   const handleSave = async () => {
     setSaving(true)
     setErr('')
     try {
-      const updated = await reassignOrderRoute(order.id, {
-        route:    route.trim() || null,
-        driverId: driverId ? Number(driverId) : null,
-      })
+      const payload = {
+        routeId: selectedRoute ? Number(selectedRoute) : null,
+      }
+      if (overrideDriver) {
+        payload.driverId = driverId ? Number(driverId) : null
+      }
+      const updated = await reassignOrderRoute(order.id, payload)
       onSaved(updated)
     } catch (e) {
       setErr(e.response?.data?.message ?? 'Erro ao guardar.')
@@ -178,44 +211,100 @@ const ReassignModal = ({ order, drivers, onClose, onSaved }) => {
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-4" onClick={handleOverlayClick}>
-      <div className="bg-surface border border-border rounded-lg w-full max-w-[420px] flex flex-col overflow-hidden shadow-elevated">
+      <div className="bg-surface border border-border rounded-lg w-full max-w-[480px] max-h-[85svh] flex flex-col overflow-hidden shadow-elevated">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
-          <h2 className="text-[0.9rem] font-bold text-primary m-0">Reatribuir — Pedido #{order.id}</h2>
+          <h2 className="text-[0.9rem] font-bold text-primary m-0">Atribuir Rota — Pedido #{order.id}</h2>
           <button className="bg-transparent border-none text-muted cursor-pointer p-1 rounded flex items-center transition-colors hover:text-primary" onClick={onClose} aria-label="Fechar">
             <IconClose />
           </button>
         </div>
 
-        <div className="px-5 py-5 flex flex-col gap-4">
+        <div className="px-5 py-5 flex flex-col gap-4 overflow-y-auto">
           <div className="flex flex-col gap-1.5">
             <label className="text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-secondary">Rota</label>
+
+            {routesLoading && <p className="text-xs text-muted m-0">A carregar rotas...</p>}
+
+            {!routesLoading && routes.length === 0 && (
+              <p className="text-xs text-muted m-0 bg-hover border border-border rounded px-3 py-2.5">
+                Nenhuma rota disponível. Crie uma rota no módulo de Rotas primeiro.
+              </p>
+            )}
+
+            {!routesLoading && routes.length > 0 && (
+              <div className="flex flex-col gap-1.5 max-h-[280px] overflow-y-auto border border-border-input rounded">
+                <button
+                  type="button"
+                  className={`text-left px-3.5 py-2.5 text-sm border-b border-border cursor-pointer transition-colors ${selectedRoute === '' ? 'bg-red/10 text-primary font-semibold' : 'bg-transparent text-secondary hover:bg-hover'}`}
+                  onClick={() => setSelectedRoute('')}
+                >
+                  — Sem rota —
+                </button>
+                {routes.map(r => {
+                  const isActive = String(r.id) === selectedRoute
+                  const driverLabel = r.driver?.name?.trim() || r.driver?.email || 'sem motorista'
+                  const ordersCount = r.orders?.length ?? 0
+                  return (
+                    <button
+                      key={r.id}
+                      type="button"
+                      className={`text-left px-3.5 py-2.5 border-b border-border last:border-b-0 cursor-pointer transition-colors ${isActive ? 'bg-red/10' : 'bg-transparent hover:bg-hover'}`}
+                      onClick={() => setSelectedRoute(String(r.id))}
+                    >
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <span className="text-sm font-semibold text-primary">{r.name}</span>
+                        <span className={`text-[0.625rem] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${ROUTE_STATUS_BADGE[r.status] ?? 'bg-hover text-secondary'}`}>
+                          {ROUTE_STATUS_LABEL[r.status] ?? r.status}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted m-0 mt-0.5">
+                        {r.region && <span>{r.region} · </span>}
+                        <span>{ordersCount} {ordersCount === 1 ? 'entrega' : 'entregas'} · {driverLabel}</span>
+                      </p>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          {selectedRoute && activeRoute && (
+            <p className="text-xs text-secondary m-0">
+              Motorista da rota: <strong>{activeRoute.driver?.name?.trim() || activeRoute.driver?.email || '—'}</strong>
+            </p>
+          )}
+
+          <label className="flex items-center gap-2 text-xs text-secondary cursor-pointer">
             <input
-              type="text"
-              className="bg-input border border-border-input rounded text-sm text-primary outline-none w-full py-2.5 px-3.5 placeholder:text-muted focus:border-red focus:ring-2 focus:ring-red/20"
-              placeholder="ex: Orlando 2 ou Miami-Orlando-Jax"
-              value={route}
-              onChange={e => setRoute(e.target.value)}
-              disabled={saving}
+              type="checkbox"
+              className="accent-red"
+              checked={overrideDriver}
+              onChange={e => setOverrideDriver(e.target.checked)}
             />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-secondary">Motorista</label>
-            <select
-              className="bg-input border border-border-input rounded text-sm text-primary outline-none w-full py-2.5 px-3.5 focus:border-red focus:ring-2 focus:ring-red/20"
-              value={driverId}
-              onChange={e => setDriverId(e.target.value)}
-              disabled={saving}
-            >
-              <option value="">— Sem motorista —</option>
-              {drivers.map(d => (
-                <option key={d.id} value={d.id}>{d.name?.trim() || d.email}</option>
-              ))}
-            </select>
-          </div>
+            Forçar motorista diferente ao da rota
+          </label>
+
+          {overrideDriver && (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-secondary">Motorista (override)</label>
+              <select
+                className="bg-input border border-border-input rounded text-sm text-primary outline-none w-full py-2.5 px-3.5 focus:border-red focus:ring-2 focus:ring-red/20"
+                value={driverId}
+                onChange={e => setDriverId(e.target.value)}
+                disabled={saving}
+              >
+                <option value="">— Sem motorista —</option>
+                {drivers.map(d => (
+                  <option key={d.id} value={d.id}>{d.name?.trim() || d.email}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {err && <p className="text-[0.8125rem] text-error bg-error-bg border border-[rgba(139,0,0,0.25)] rounded px-3.5 py-2.5 m-0">{err}</p>}
         </div>
 
-        <div className="flex gap-2 justify-end px-5 py-4 border-t border-border">
+        <div className="flex gap-2 justify-end px-5 py-4 border-t border-border shrink-0">
           <button className="bg-transparent border border-border-input rounded px-4 py-2 text-[0.8125rem] font-semibold text-secondary cursor-pointer hover:text-primary disabled:opacity-40" onClick={onClose} disabled={saving}>Cancelar</button>
           <button className="bg-red border-none rounded px-4 py-2 text-[0.8125rem] font-bold uppercase tracking-[0.05em] text-on-red cursor-pointer hover:bg-red-h disabled:opacity-40 disabled:cursor-not-allowed" onClick={handleSave} disabled={saving}>
             {saving ? 'A guardar…' : 'Guardar'}

@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { fetchProducts, fetchProductStock } from '../services/inventoryService'
 import { createOrder } from '../services/orderService'
 import { fetchClients, createClient } from '../services/clientService'
-import { fetchDrivers } from '../services/userService'
 
 const fmt = (n) =>
   Number(n).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
@@ -36,13 +35,10 @@ const IconClose = () => (
 const OrderEntry = () => {
   const [products,   setProducts]   = useState([])
   const [clients,    setClients]    = useState([])
-  const [drivers,    setDrivers]    = useState([])
   const [loading,    setLoading]    = useState(true)
 
   /* ── Tipo de entrega ── */
   const [deliveryType, setDeliveryType] = useState('DELIVERY') // 'DELIVERY' | 'PICKUP'
-  const [route,        setRoute]        = useState('')
-  const [driverId,     setDriverId]     = useState('')
 
   /* ── Loja (searchable + auto-create) ── */
   const [clientQuery,      setClientQuery]      = useState('')
@@ -73,8 +69,8 @@ const OrderEntry = () => {
   const qtyRef = useRef(null)
 
   useEffect(() => {
-    Promise.all([fetchProducts(), fetchClients(), fetchDrivers().catch(() => [])])
-      .then(([prods, cls, drvs]) => { setProducts(prods); setClients(cls); setDrivers(drvs) })
+    Promise.all([fetchProducts(), fetchClients()])
+      .then(([prods, cls]) => { setProducts(prods); setClients(cls) })
       .catch(() => setError('Erro ao carregar dados.'))
       .finally(() => setLoading(false))
   }, [])
@@ -234,8 +230,6 @@ const OrderEntry = () => {
         clientId: resolvedClientId || undefined,
         clientName,
         deliveryType,
-        route:    deliveryType === 'DELIVERY' ? (route.trim() || null) : null,
-        driverId: deliveryType === 'DELIVERY' && driverId ? Number(driverId) : null,
         items: cart.map(({ productId, quantity, priceType, pricePerLb, pricePerBox, pricePerUnit }) => ({
           productId, quantity, priceType, pricePerLb, pricePerBox, pricePerUnit,
         })),
@@ -245,8 +239,6 @@ const OrderEntry = () => {
       setCart([])
       setClientQuery('')
       setSelectedClient(null)
-      setRoute('')
-      setDriverId('')
     } catch (err) {
       setError(err.response?.data?.message || 'Erro ao criar pedido.')
     } finally {
@@ -335,41 +327,17 @@ const OrderEntry = () => {
                   Retirada
                 </button>
               </div>
+              {deliveryType === 'DELIVERY' && (
+                <p className="text-xs text-secondary m-0">
+                  Rota e motorista são definidos pela expedição/admin no módulo de Rotas após a confirmação.
+                </p>
+              )}
               {deliveryType === 'PICKUP' && (
                 <p className="text-xs text-secondary m-0">
                   Retirada na loja — sem rota nem motorista. Cliente recolhe assim que ficar pronto.
                 </p>
               )}
             </div>
-
-            {/* ── Rota e Motorista (apenas DELIVERY) ── */}
-            {deliveryType === 'DELIVERY' && (
-              <div className="flex gap-3 [&>*]:flex-1">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-secondary">Rota</label>
-                  <input
-                    type="text"
-                    className="bg-input border border-border-input rounded text-sm text-primary outline-none w-full py-[0.7rem] px-[0.875rem] transition-[border-color,box-shadow] duration-[180ms] focus:border-red focus:ring-2 focus:ring-red/20 placeholder:text-muted"
-                    placeholder="ex: Orlando 2 ou Miami-Orlando-Jax"
-                    value={route}
-                    onChange={e => setRoute(e.target.value)}
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-secondary">Motorista</label>
-                  <select
-                    className="bg-input border border-border-input rounded text-sm text-primary outline-none w-full py-[0.7rem] px-[0.875rem] appearance-none transition-[border-color,box-shadow] duration-[180ms] focus:border-red focus:ring-2 focus:ring-red/20"
-                    value={driverId}
-                    onChange={e => setDriverId(e.target.value)}
-                  >
-                    <option value="">— Sem motorista —</option>
-                    {drivers.map(d => (
-                      <option key={d.id} value={d.id}>{d.name?.trim() || d.email}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            )}
 
             <div className="flex flex-col gap-1.5">
               <label className="text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-secondary">Produto</label>
@@ -561,19 +529,6 @@ const OrderEntry = () => {
             <span>Tipo</span>
             <span>{deliveryType === 'PICKUP' ? 'Retirada' : 'Entrega'}</span>
           </div>
-
-          {deliveryType === 'DELIVERY' && (
-            <>
-              <div className="flex justify-between items-baseline py-2 border-b border-border text-[0.8125rem] text-secondary [&>span:last-child]:text-primary [&>span:last-child]:font-semibold">
-                <span>Rota</span>
-                <span>{route.trim() || '—'}</span>
-              </div>
-              <div className="flex justify-between items-baseline py-2 border-b border-border text-[0.8125rem] text-secondary [&>span:last-child]:text-primary [&>span:last-child]:font-semibold">
-                <span>Motorista</span>
-                <span>{drivers.find(d => String(d.id) === String(driverId))?.name || drivers.find(d => String(d.id) === String(driverId))?.email || '—'}</span>
-              </div>
-            </>
-          )}
 
           <div className="flex justify-between items-baseline py-2 border-b border-border text-[0.8125rem] text-secondary [&>span:last-child]:text-primary [&>span:last-child]:font-semibold">
             <span>Itens</span>

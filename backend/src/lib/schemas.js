@@ -1,13 +1,14 @@
 const { z } = require('zod')
 
-/* ── Create Order ── */
+/* ── Create Order ──
+ * NOTA: route/driver não fazem parte da criação. São atribuídos numa
+ * etapa separada via módulo de Rotas (POST /routes/:id/assign-orders).
+ */
 const createOrderSchema = z.object({
   clientId:     z.number().int().positive().nullish(),
   clientName:   z.string().min(1, 'clientName é obrigatório.').nullish(),
   address:      z.string().nullish(),
   deliveryType: z.enum(['DELIVERY', 'PICKUP']).default('DELIVERY'),
-  route:        z.string().nullish(),
-  driverId:     z.number().int().positive().nullish(),
   items: z.array(z.object({
     productId:   z.number({ required_error: 'productId é obrigatório.' }).int().positive(),
     quantity:    z.number({ required_error: 'quantity é obrigatório.' }).int().positive('Quantidade deve ser um inteiro positivo.'),
@@ -20,8 +21,11 @@ const createOrderSchema = z.object({
   { message: 'clientId ou clientName é obrigatório.' }
 )
 
-/* ── Reassign Route/Driver ── */
+/* ── Reassign Route/Driver ──
+ * Permite ligar manualmente um pedido a uma rota OU passar route/driver soltos.
+ */
 const reassignRouteSchema = z.object({
+  routeId:  z.number().int().positive().nullable().optional(),
   route:    z.string().nullish(),
   driverId: z.number().int().positive().nullable().optional(),
 })
