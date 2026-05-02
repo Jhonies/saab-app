@@ -4,6 +4,7 @@ const INCLUDE_FULL = {
   client:    { select: { id: true, email: true } },
   store:     { select: { id: true, name: true, address: true } },
   driver:    { select: { id: true, name: true, email: true } },
+  createdBy: { select: { id: true, name: true, email: true } },
   routePlan: { select: { id: true, name: true, region: true, status: true } },
   items:  {
     include: {
@@ -161,6 +162,7 @@ const createOrder = async ({ clientId, storeId, clientName, address: inputAddres
         address,
         lat,
         lon,
+        createdById:  updatedById ?? null,
         updatedById,
         items:        { create: itemsToCreate },
       },

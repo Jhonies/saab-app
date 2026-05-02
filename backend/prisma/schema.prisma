@@ -17,10 +17,11 @@ model User {
   address      String   @default("")
   lat          Float?
   lon          Float?
-  orders       Order[]
-  driverOrders Order[]   @relation("OrderDriver")
-  driverRoutes Route[]   @relation("RouteDriver")
-  notices      Notice[]  @relation("NoticeCreator")
+  orders        Order[]
+  createdOrders Order[]  @relation("OrderCreator")
+  driverOrders  Order[]  @relation("OrderDriver")
+  driverRoutes  Route[]  @relation("RouteDriver")
+  notices       Notice[] @relation("NoticeCreator")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
@@ -147,6 +148,9 @@ model Order {
   loadedAt            DateTime?
   // Auditoria
   updatedById         Int?
+  // Vendedor que criou o pedido (usado como SALES REP no invoice)
+  createdById         Int?
+  createdBy           User?        @relation("OrderCreator", fields: [createdById], references: [id])
   lastStatusAt        DateTime?
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt

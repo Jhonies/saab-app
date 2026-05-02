@@ -68,8 +68,9 @@ const generateInvoice = (order, stream) => {
    const BOLD = 'HelvBold'    // hierarchy & emphasis
    const BODY = 'IBMItalic'   // secondary & descriptive
 
-   // ── Footer block height (used for both row overflow check and footer placement) ──
-   const FOOTER_BLOCK_H = 170
+   // ── Footer block height (Balance + signature + Pay button + cert + zelle) ──
+   // dotted(10) + balance(25) + sigGap(20) + sigBlock(60) + payButton(28) + cert(28) = ~171
+   const FOOTER_BLOCK_H = 175
 
    // ── Page-break threshold ──
    const PAGE_BOTTOM = doc.page.height - 40 - FOOTER_BLOCK_H - 14
@@ -106,29 +107,33 @@ const generateInvoice = (order, stream) => {
 
    // ── Info block ──
    const infoY = invoiceY + 40
-   const col1 = PL
-   const col2 = PL + CW * 0.33
-   const col3 = PL + CW * 0.66
 
-   // BILL TO
+   // Layout: 3 colunas com larguras fixas + gutters de 12px (Bill / Ship / Datas).
+   const colGutter = 12
+   const colW      = (CW - colGutter * 2) / 3
+   const col1      = PL
+   const col2      = PL + colW + colGutter
+   const col3      = PL + (colW + colGutter) * 2
+
+   // BILL TO + SHIP TO content (height calculado para evitar sobreposição com SALES REP).
+   const partyText = ([order.clientName, order.address].filter(Boolean).join('\n') || '—').toUpperCase()
+   const partyOpts = { width: colW, align: 'left' }
+
    doc.font('IBMBold').fontSize(10).fillColor(COLOR.black)
       .text('BILL TO', col1, infoY)
    doc.font('HelvItalic').fontSize(10).fillColor(COLOR.black)
-      .text(
-         ([order.clientName, order.address].filter(Boolean).join('\n') || '—').toUpperCase(),
-         col1, infoY + 14, { width: CW * 0.30 }
-      )
+      .text(partyText, col1, infoY + 14, partyOpts)
 
-   // SHIP TO
    doc.font('IBMBold').fontSize(10).fillColor(COLOR.black)
       .text('SHIP TO', col2, infoY)
    doc.font('HelvItalic').fontSize(10).fillColor(COLOR.black)
-      .text(
-         ([order.clientName, order.address].filter(Boolean).join('\n') || '—').toUpperCase(),
-         col2, infoY + 14, { width: CW * 0.30 }
-      )
+      .text(partyText, col2, infoY + 14, partyOpts)
 
-   // INVOICE # / DATE / DUE DATE / TERMS
+   // Mede a altura real do bloco de endereço para empurrar SALES REP abaixo.
+   const partyTextH = doc.heightOfString(partyText, partyOpts)
+   const partyBottom = infoY + 14 + partyTextH
+
+   // INVOICE # / DATE / DUE DATE / TERMS — coluna direita fixa.
    const dueDate = new Date(order.createdAt)
    dueDate.setDate(dueDate.getDate() + 7)
 
@@ -144,18 +149,30 @@ const generateInvoice = (order, stream) => {
       doc.font('IBMBold').fontSize(10).fillColor(COLOR.black)
          .text(label, col3, ly, { width: 70, align: 'right' })
       doc.font('HelvItalic').fontSize(10).fillColor(COLOR.black)
-         .text(value, col3 + 75, ly, { width: 100 })
+         .text(value, col3 + 75, ly, { width: colW - 75 })
    })
+   const rightBottom = infoY + rightLabels.length * 14
 
-   // ── SALES REP ──
-   const repY = infoY + 70
+   // ── SALES REP ── empurrado dinamicamente para baixo de Bill To / Ship To.
+   const repY = Math.max(partyBottom, rightBottom) + 14
+   const repName  = order.createdBy?.name?.trim()
+   const repEmail = order.createdBy?.email
    doc.font('IBMBold').fontSize(10).fillColor(COLOR.black)
       .text('SALES REP', col1, repY)
    doc.font('HelvItalic').fontSize(10).fillColor(COLOR.black)
-      .text((order.client?.email || 'WELLINGTON').toUpperCase(), col1, repY + 14)
+   if (repName) {
+      doc.text(repName.toUpperCase(), col1, repY + 14, { width: colW * 2 })
+   }
+   if (repEmail) {
+      doc.text(repEmail.toUpperCase(), col1, repY + (repName ? 26 : 14), { width: colW * 2 })
+   }
+   if (!repName && !repEmail) {
+      doc.text('—', col1, repY + 14)
+   }
 
-   // Thin gray separator before table
-   const sepY = repY + 36
+   // Thin gray separator before table — abaixo de tudo.
+   const repBottom = repY + 14 + (repName ? 12 : 0) + (repEmail ? 12 : 0)
+   const sepY = repBottom + 8
    doc.moveTo(PL, sepY).lineTo(PR, sepY)
       .strokeColor(COLOR.lineGray).lineWidth(0.3).stroke()
 
@@ -312,8 +329,6 @@ const generateInvoice = (order, stream) => {
       return 125
    })()
 
-   const pageH = doc.page.height
-
    // Dotted line before footer
    const dottedY = balY - 10
    doc.moveTo(PL, dottedY).lineTo(PR, dottedY)
@@ -357,8 +372,16 @@ const generateInvoice = (order, stream) => {
    doc.font('HelvItalic').fontSize(9).fillColor(COLOR.black)
       .text('Pay invoice', PL, sigY + 74, { width: 75, align: 'center' })
 
-   // ── Bottom bar ──
-   const certY = pageH - 45
+   // ── Bottom bar (Sales Tax + Zelle) ──
+   // Render condicional: se houver espaço na página atual, mantém logo após
+   // o Pay Invoice button; caso contrário, ancorada ao rodapé da nova página.
+   const payButtonBottom = sigY + 88
+   const pageBottom      = doc.page.height - 40
+   const certBlockH      = 28  // duas linhas de 6.5pt + lineGap
+
+   const certY = (payButtonBottom + 18 + certBlockH <= pageBottom)
+      ? payButtonBottom + 18
+      : pageBottom - certBlockH
 
    doc.font('HelvItalic').fontSize(6.5).fillColor(COLOR.black)
       .text(
