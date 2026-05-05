@@ -76,15 +76,23 @@ const createProduct = async (req, res) => {
 }
 
 const updateProduct = async (req, res) => {
-  const { name, type, active, priceType, pricePerLb, pricePerBox, pricePerUnit } = req.body
+  const { name, type, active, stockGeneral, priceType, pricePerLb, pricePerBox, pricePerUnit } = req.body
 
   if (name !== undefined && !name.trim()) {
     return res.status(400).json({ message: 'Nome não pode ser vazio.' })
   }
 
+  if (stockGeneral !== undefined) {
+    const n = Number(stockGeneral)
+    if (!Number.isInteger(n) || n < 0) {
+      return res.status(400).json({ message: 'Estoque inválido (inteiro >= 0).' })
+    }
+  }
+
   const product = await InventoryService.updateProduct(req.params.id, {
     ...(name   !== undefined && { name: name.trim().toUpperCase() }),
     ...(active !== undefined && { active: Boolean(active) }),
+    ...(stockGeneral !== undefined && { stockGeneral: Number(stockGeneral) }),
     ...(priceType !== undefined && { priceType }),
     ...(pricePerLb !== undefined && { pricePerLb: pricePerLb ? Number(pricePerLb) : null }),
     ...(pricePerBox !== undefined && { pricePerBox: pricePerBox ? Number(pricePerBox) : null }),

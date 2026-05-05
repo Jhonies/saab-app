@@ -22,15 +22,17 @@ const BarcodeScanner = ({ onScan, onClose }) => {
         })
         stream.getTracks().forEach(track => track.stop())
 
-        // 🔥 HINTS MELHORADOS (sem quebrar nada)
+        // Barcode format hints — cover all common formats used in meat/food industry
         const hints = new Map()
         hints.set(DecodeHintType.POSSIBLE_FORMATS, [
-          BarcodeFormat.CODE_128,
-          BarcodeFormat.EAN_13,
-          BarcodeFormat.EAN_8,
-          BarcodeFormat.UPC_A,
-          BarcodeFormat.ITF,        // caixas grandes (muito importante)
-          BarcodeFormat.CODABAR     // alguns fornecedores
+          BarcodeFormat.CODE_128,    // GS1-128 (principal — carnes com peso)
+          BarcodeFormat.EAN_13,      // EAN-13 (produtos simples)
+          BarcodeFormat.EAN_8,       // EAN-8 (pequenos)
+          BarcodeFormat.UPC_A,       // UPC-A (produtos americanos)
+          BarcodeFormat.UPC_E,       // UPC-E (compacto)
+          BarcodeFormat.ITF,         // Interleaved 2-of-5 (caixas grandes)
+          BarcodeFormat.CODE_39,     // Code 39 (alguns fornecedores de carne)
+          BarcodeFormat.CODABAR      // Codabar (legado, alguns fornecedores)
         ])
         hints.set(DecodeHintType.TRY_HARDER, true)
         hints.set(DecodeHintType.ALSO_INVERTED, true)

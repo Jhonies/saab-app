@@ -69,6 +69,7 @@ const updateProduct = (id, data) =>
       ...data,
       ...(data.name !== undefined && { name: data.name.trim().toUpperCase() }),
       ...(data.type !== undefined && { type: data.type.trim().toUpperCase() }),
+      ...(data.stockGeneral !== undefined && { stockGeneral: Number(data.stockGeneral) }),
       ...(data.pricePerLb !== undefined && { pricePerLb: Number(data.pricePerLb) }),
       ...(data.pricePerBox !== undefined && { pricePerBox: Number(data.pricePerBox) }),
       ...(data.pricePerUnit !== undefined && { pricePerUnit: Number(data.pricePerUnit) }),

@@ -113,14 +113,14 @@ const ProductModal = ({ initial, onClose, onSaved }) => {
                   className={`px-3.5 py-1.5 bg-transparent border-none text-xs font-semibold cursor-pointer transition-[background-color,color] duration-150 ${active ? 'bg-ok text-on-red' : 'text-muted'}`}
                   onClick={() => setActive(true)}
                 >
-                  Activo
+                  Ativo
                 </button>
                 <button
                   type="button"
                   className={`px-3.5 py-1.5 bg-transparent border-l border-border-input text-xs font-semibold cursor-pointer transition-[background-color,color] duration-150 ${!active ? 'bg-red-light text-error' : 'text-muted border-none'}`}
                   onClick={() => setActive(false)}
                 >
-                  Inactivo
+                  Inativo
                 </button>
               </div>
             </div>
@@ -288,14 +288,14 @@ const AdminProducts = () => {
         <div className="flex items-center gap-4 flex-wrap">
           <h1 className="text-base font-bold text-primary m-0">Produtos</h1>
 
-          {/* Filtros activo/todos — só visíveis na aba lista */}
+          {/* Filtros ativo/todos — só visíveis na aba lista */}
           {tab === 'lista' && (
             <div className="flex gap-1.5">
               <button
                 className={`flex items-center gap-[0.4rem] px-3 py-[0.35rem] bg-transparent border border-border-input rounded text-xs font-medium text-secondary cursor-pointer transition-[border-color,color,background-color] duration-150 hover:border-muted hover:text-primary ${filter === 'active' ? '!bg-red !border-red !text-on-red' : ''}`}
                 onClick={() => setFilter('active')}
               >
-                Activos
+                Ativos
                 <span className={`inline-flex items-center justify-center min-w-[1.125rem] h-[1.125rem] px-1 rounded-full text-[0.625rem] font-bold ${filter === 'active' ? 'bg-white/20 text-on-red' : 'bg-input text-secondary'}`}>
                   {products.filter(p => p.active !== false).length}
                 </span>
@@ -390,8 +390,8 @@ const AdminProducts = () => {
                     {/* Estado */}
                     <span>
                       {product.active !== false
-                        ? <span className="inline-block px-2.5 py-[0.2rem] rounded-full border border-ok text-[0.6875rem] font-semibold uppercase tracking-[0.08em] whitespace-nowrap text-ok bg-ok-bg">Activo</span>
-                        : <span className="inline-block px-2.5 py-[0.2rem] rounded-full border border-border-input text-[0.6875rem] font-semibold uppercase tracking-[0.08em] whitespace-nowrap text-muted bg-transparent">Inactivo</span>
+                        ? <span className="inline-block px-2.5 py-[0.2rem] rounded-full border border-ok text-[0.6875rem] font-semibold uppercase tracking-[0.08em] whitespace-nowrap text-ok bg-ok-bg">Ativo</span>
+                        : <span className="inline-block px-2.5 py-[0.2rem] rounded-full border border-border-input text-[0.6875rem] font-semibold uppercase tracking-[0.08em] whitespace-nowrap text-muted bg-transparent">Inativo</span>
                       }
                     </span>
 

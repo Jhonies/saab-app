@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { fetchConsolidatedStock, fetchAllProducts, createProduct, updateProduct } from '../services/inventoryService'
+import { fetchConsolidatedStock, fetchAllProducts, createProduct, updateProduct, deleteProduct } from '../services/inventoryService'
 import { ZONE_LABELS } from '../constants/zones'
 import { fmtDate, fmtRelative } from '../utils/dateFormatters'
 import { useAuth } from '../context/AuthContext'
@@ -59,12 +59,17 @@ const getStockHealth = (qty) => {
 }
 
 /* ── Product Modal (create/edit) ── */
-const ProductModal = ({ initial, onClose, onSaved }) => {
+const ProductModal = ({ initial, onClose, onSaved, onDeleted }) => {
   const isEdit = !!initial
 
   const [name,   setName]   = useState(initial?.name   ?? '')
   const [active, setActive] = useState(initial?.active ?? true)
+  const [stockGeneral, setStockGeneral] = useState(
+    Number.isFinite(initial?.stockGeneral) ? initial.stockGeneral : 0
+  )
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [error,  setError]  = useState('')
 
   useEffect(() => {
@@ -73,13 +78,24 @@ const ProductModal = ({ initial, onClose, onSaved }) => {
     return () => window.removeEventListener('keydown', handler)
   }, [onClose])
 
+  const adjustStock = (delta) => {
+    setStockGeneral(prev => Math.max(0, Number(prev || 0) + delta))
+  }
+
+  const handleStockChange = (e) => {
+    const v = e.target.value
+    if (v === '') { setStockGeneral(0); return }
+    const n = parseInt(v, 10)
+    if (!isNaN(n) && n >= 0) setStockGeneral(n)
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
 
     const data = {
       name: name.trim(),
-      ...(isEdit && { active }),
+      ...(isEdit && { active, stockGeneral: Number(stockGeneral) || 0 }),
     }
 
     setSaving(true)
@@ -92,6 +108,20 @@ const ProductModal = ({ initial, onClose, onSaved }) => {
       setError(err?.response?.data?.message ?? 'Erro ao guardar produto.')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    setError('')
+    setDeleting(true)
+    try {
+      await deleteProduct(initial.id)
+      onDeleted?.(initial.id)
+    } catch (err) {
+      setError(err?.response?.data?.message ?? 'Erro ao eliminar produto.')
+      setConfirmDelete(false)
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -128,6 +158,41 @@ const ProductModal = ({ initial, onClose, onSaved }) => {
           </div>
 
           {isEdit && (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[0.6875rem] font-bold uppercase tracking-[0.12em] text-secondary" htmlFor="prod-stock">
+                Estoque Geral (caixas)
+              </label>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="w-9 h-9 flex items-center justify-center bg-input border border-border-input rounded text-base font-bold text-primary cursor-pointer transition-colors duration-150 hover:border-muted hover:bg-hover disabled:opacity-40 disabled:cursor-not-allowed"
+                  onClick={() => adjustStock(-1)}
+                  disabled={Number(stockGeneral) <= 0}
+                  aria-label="Diminuir quantidade"
+                >
+                  −
+                </button>
+                <input
+                  id="prod-stock"
+                  type="number"
+                  min="0"
+                  className="bg-input border border-border-input rounded px-3 py-[0.5625rem] text-sm text-primary text-center w-full transition-[border-color,box-shadow] duration-150 focus:outline-none focus:border-red focus:shadow-[0_0_0_3px_rgba(139,0,0,0.22)]"
+                  value={stockGeneral}
+                  onChange={handleStockChange}
+                />
+                <button
+                  type="button"
+                  className="w-9 h-9 flex items-center justify-center bg-input border border-border-input rounded text-base font-bold text-primary cursor-pointer transition-colors duration-150 hover:border-muted hover:bg-hover"
+                  onClick={() => adjustStock(1)}
+                  aria-label="Aumentar quantidade"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          )}
+
+          {isEdit && (
             <div className="flex items-center justify-between gap-4">
               <label className="text-[0.6875rem] font-bold uppercase tracking-[0.12em] text-secondary">Estado</label>
               <div className="flex border border-border-input rounded overflow-hidden">
@@ -136,14 +201,14 @@ const ProductModal = ({ initial, onClose, onSaved }) => {
                   className={`px-3.5 py-1.5 bg-transparent border-none text-xs font-semibold cursor-pointer transition-[background-color,color] duration-150 ${active ? 'bg-ok text-on-red' : 'text-muted'}`}
                   onClick={() => setActive(true)}
                 >
-                  Activo
+                  Ativo
                 </button>
                 <button
                   type="button"
                   className={`px-3.5 py-1.5 bg-transparent border-l border-border-input text-xs font-semibold cursor-pointer transition-[background-color,color] duration-150 ${!active ? 'bg-red-light text-error' : 'text-muted border-none'}`}
                   onClick={() => setActive(false)}
                 >
-                  Inactivo
+                  Inativo
                 </button>
               </div>
             </div>
@@ -155,22 +220,61 @@ const ProductModal = ({ initial, onClose, onSaved }) => {
             </p>
           )}
 
-          <div className="flex justify-end gap-3 pt-1.5">
-            <button
-              type="button"
-              className="bg-transparent border border-border-input rounded px-[1.125rem] py-2 text-[0.8125rem] font-semibold text-secondary cursor-pointer transition-[border-color,color] duration-150 hover:border-muted hover:text-primary disabled:opacity-40 disabled:cursor-not-allowed"
-              onClick={onClose}
-              disabled={saving}
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="inline-flex items-center gap-2 bg-red border-none rounded px-[1.125rem] py-2 text-[0.8125rem] font-bold uppercase tracking-[0.05em] text-on-red cursor-pointer transition-colors duration-150 hover:bg-red-h active:bg-red-a disabled:opacity-40 disabled:cursor-not-allowed"
-              disabled={saving}
-            >
-              {saving ? <><Spinner /> A guardar...</> : isEdit ? 'Guardar Alterações' : 'Criar Produto'}
-            </button>
+          {isEdit && confirmDelete && (
+            <div className="border border-red/40 bg-error-bg rounded p-3.5 flex flex-col gap-2.5">
+              <p className="text-[0.8125rem] text-error m-0 font-semibold">
+                Tem certeza que deseja eliminar “{initial.name}”? Esta ação não pode ser desfeita.
+              </p>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  className="bg-transparent border border-border-input rounded px-3 py-1.5 text-xs font-semibold text-secondary cursor-pointer transition-[border-color,color] duration-150 hover:border-muted hover:text-primary disabled:opacity-40 disabled:cursor-not-allowed"
+                  onClick={() => setConfirmDelete(false)}
+                  disabled={deleting}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1.5 bg-red border-none rounded px-3 py-1.5 text-xs font-bold uppercase tracking-[0.05em] text-on-red cursor-pointer transition-colors duration-150 hover:bg-red-h active:bg-red-a disabled:opacity-40 disabled:cursor-not-allowed"
+                  onClick={handleDelete}
+                  disabled={deleting}
+                >
+                  {deleting ? <><Spinner /> A eliminar...</> : 'Sim, eliminar'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between gap-3 pt-1.5">
+            {isEdit && !confirmDelete ? (
+              <button
+                type="button"
+                className="bg-transparent border border-red/50 rounded px-[1.125rem] py-2 text-[0.8125rem] font-semibold text-error cursor-pointer transition-colors duration-150 hover:bg-error-bg disabled:opacity-40 disabled:cursor-not-allowed"
+                onClick={() => setConfirmDelete(true)}
+                disabled={saving || deleting}
+              >
+                Eliminar
+              </button>
+            ) : <span />}
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                className="bg-transparent border border-border-input rounded px-[1.125rem] py-2 text-[0.8125rem] font-semibold text-secondary cursor-pointer transition-[border-color,color] duration-150 hover:border-muted hover:text-primary disabled:opacity-40 disabled:cursor-not-allowed"
+                onClick={onClose}
+                disabled={saving || deleting}
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="inline-flex items-center gap-2 bg-red border-none rounded px-[1.125rem] py-2 text-[0.8125rem] font-bold uppercase tracking-[0.05em] text-on-red cursor-pointer transition-colors duration-150 hover:bg-red-h active:bg-red-a disabled:opacity-40 disabled:cursor-not-allowed"
+                disabled={saving || deleting}
+              >
+                {saving ? <><Spinner /> A guardar...</> : isEdit ? 'Guardar Alterações' : 'Criar Produto'}
+              </button>
+            </div>
           </div>
         </form>
       </div>
@@ -196,7 +300,7 @@ const ProductRow = ({ item, expanded, onToggle, isAdmin, onEdit }) => {
           <span className={`sm:hidden w-2 h-2 rounded-full shrink-0 ${health.dot}`} />
           <span className={`text-[0.8125rem] font-medium text-primary truncate ${item.active === false ? 'opacity-50 line-through' : ''}`}>{item.productName}</span>
           {item.active === false && (
-            <span className="inline-block px-1.5 py-[0.1rem] rounded text-[0.5625rem] font-semibold uppercase tracking-[0.08em] text-muted bg-input border border-border-input shrink-0">Inactivo</span>
+            <span className="inline-block px-1.5 py-[0.1rem] rounded text-[0.5625rem] font-semibold uppercase tracking-[0.08em] text-muted bg-input border border-border-input shrink-0">Inativo</span>
           )}
         </div>
 
@@ -384,6 +488,12 @@ const StockOverview = () => {
     fetchConsolidatedStock().then(setStock).catch(() => {})
   }
 
+  const handleDeleted = (deletedId) => {
+    setProducts(prev => prev.filter(p => p.id !== deletedId))
+    setStock(prev => prev.filter(s => s.productId !== deletedId))
+    setModal(null)
+  }
+
   const handleEdit = (item) => {
     const prod = productMap[item.productId]
     if (prod) {
@@ -511,6 +621,7 @@ const StockOverview = () => {
           initial={modal === 'new' ? null : modal}
           onClose={() => setModal(null)}
           onSaved={handleSaved}
+          onDeleted={handleDeleted}
         />
       )}
     </div>

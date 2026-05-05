@@ -5,7 +5,7 @@ import { fetchOrders } from '../services/orderService'
 const ACTIVE_STATUSES = ['PENDING', 'CONFIRMED', 'SEPARATING', 'READY']
 
 const FILTERS = [
-  { key: 'ALL',        label: 'Todos Activos' },
+  { key: 'ALL',        label: 'Todos Ativos' },
   { key: 'PENDING',    label: 'Pendente'      },
   { key: 'CONFIRMED',  label: 'Confirmado'    },
   { key: 'SEPARATING', label: 'Em Separação'  },
