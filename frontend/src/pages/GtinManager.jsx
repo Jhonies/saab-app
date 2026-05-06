@@ -50,11 +50,18 @@ const GtinManager = () => {
   }
 
   const handleSave = async () => {
-    const gtin = manualGtin.trim()
-    if (!gtin || !selectedProduct) {
+    const raw = manualGtin.trim().replace(/\D/g, '')
+    if (!raw || !selectedProduct) {
       setMsg({ text: 'Preencha o GTIN e selecione um produto.', type: 'error' })
       return
     }
+    if (!/^\d{8,14}$/.test(raw)) {
+      setMsg({ text: 'GTIN deve ter entre 8 e 14 dígitos.', type: 'error' })
+      return
+    }
+    // Padronizar para 14 dígitos (mesma normalização do backend) para garantir
+    // que entradas manuais (EAN-13, UPC-A) batem com leituras de scanner (GTIN-14).
+    const gtin = raw.padStart(14, '0')
 
     setSaving(true)
     setMsg({ text: '', type: '' })

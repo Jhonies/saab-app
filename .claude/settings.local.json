@@ -47,7 +47,10 @@
       "Bash(cat \"C:\\\\\\\\Users\\\\\\\\vlope\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\C--Users-vlope-Desktop-Project-saab-app\\\\\\\\c4b99e64-c166-437c-b008-6087c36f5fc8\\\\\\\\tasks\\\\\\\\b6h291sv7.output\")",
       "Bash(ls C:\\\\Users\\\\vlope\\\\Desktop\\\\Project\\\\saab-app\\\\backend\\\\prisma\\\\migrations *)",
       "Bash(npx eslint *)",
-      "PowerShell(npm run *)"
+      "PowerShell(npm run *)",
+      "Bash(dir C:\\\\Users\\\\vlope\\\\Desktop\\\\Project\\\\saab-app\\\\frontend\\\\src\\\\services *)",
+      "Bash(xargs grep -l \"zod\\\\|Zod\")",
+      "Bash(xargs grep -l \"gs1\\\\|GS1\\\\|gtin\\\\|GTIN\")"
     ]
   }
 }

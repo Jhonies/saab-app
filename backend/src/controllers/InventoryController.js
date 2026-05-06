@@ -1,5 +1,13 @@
 const InventoryService = require('../services/InventoryService')
 
+// Normaliza GTIN: remove tudo que não for dígito, valida 8-14 dígitos,
+// e zero-pad até 14 para garantir match consistente entre EAN-13/UPC-A/GTIN-14.
+const normalizeGtin = (raw) => {
+  const digits = String(raw || '').replace(/\D/g, '')
+  if (!/^\d{8,14}$/.test(digits)) return null
+  return digits.padStart(14, '0')
+}
+
 /* ── Containers ── */
 
 const listContainers = async (req, res) => {
@@ -123,22 +131,31 @@ const getConsolidatedStock = async (_req, res) => {
 /* ── GTIN ── */
 
 const lookupGtin = async (req, res) => {
-  const mapping = await InventoryService.findProductByGtin(req.params.gtin)
+  const gtin = normalizeGtin(req.params.gtin)
+  if (!gtin) return res.status(400).json({ message: 'GTIN inválido (8-14 dígitos).' })
+  const mapping = await InventoryService.findProductByGtin(gtin)
   if (!mapping) return res.status(404).json({ message: 'GTIN não encontrado.' })
   return res.json(mapping)
 }
 
 const createGtinMapping = async (req, res) => {
-  const { gtin, productId } = req.body
-  if (!gtin?.trim() || !productId) {
-    return res.status(400).json({ message: 'GTIN e productId são obrigatórios.' })
+  const gtin = normalizeGtin(req.body.gtin)
+  const productId = Number(req.body.productId)
+  if (!gtin) {
+    return res.status(400).json({ message: 'GTIN inválido (deve ter 8-14 dígitos).' })
+  }
+  if (!Number.isInteger(productId) || productId <= 0) {
+    return res.status(400).json({ message: 'productId é obrigatório.' })
   }
   try {
-    const mapping = await InventoryService.createGtinMapping(gtin.trim(), productId)
+    const mapping = await InventoryService.createGtinMapping(gtin, productId)
     return res.status(201).json(mapping)
   } catch (err) {
     if (err.code === 'P2002') {
       return res.status(409).json({ message: 'GTIN já registrado.' })
+    }
+    if (err.code === 'P2003') {
+      return res.status(400).json({ message: 'Produto não encontrado.' })
     }
     throw err
   }

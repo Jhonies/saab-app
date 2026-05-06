@@ -4,23 +4,33 @@ import { BrowserMultiFormatReader, BarcodeFormat, DecodeHintType } from '@zxing/
 const BarcodeScanner = ({ onScan, onClose }) => {
   const videoRef = useRef(null)
   const readerRef = useRef(null)
+  const trackRef = useRef(null)
+
   const [error, setError] = useState(null)
   const [cameras, setCameras] = useState([])
   const [selectedCamera, setSelectedCamera] = useState('')
 
+  // Capability-driven UI
+  const [torchSupported, setTorchSupported] = useState(false)
+  const [torchOn, setTorchOn] = useState(false)
+  const [zoomCaps, setZoomCaps] = useState(null) // { min, max, step }
+  const [zoomLevel, setZoomLevel] = useState(1)
+
   useEffect(() => {
+    let cancelled = false
+
     const initCamera = async () => {
       try {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        if (!navigator.mediaDevices?.getUserMedia) {
           setError('Câmera não suportada no navegador. Use HTTPS.')
           return
         }
 
-        // força permissão
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment' }
+        // Force permission prompt
+        const tmp = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' },
         })
-        stream.getTracks().forEach(track => track.stop())
+        tmp.getTracks().forEach(t => t.stop())
 
         // Barcode format hints — cover all common formats used in meat/food industry
         const hints = new Map()
@@ -32,7 +42,7 @@ const BarcodeScanner = ({ onScan, onClose }) => {
           BarcodeFormat.UPC_E,       // UPC-E (compacto)
           BarcodeFormat.ITF,         // Interleaved 2-of-5 (caixas grandes)
           BarcodeFormat.CODE_39,     // Code 39 (alguns fornecedores de carne)
-          BarcodeFormat.CODABAR      // Codabar (legado, alguns fornecedores)
+          BarcodeFormat.CODABAR,     // Codabar (legado)
         ])
         hints.set(DecodeHintType.TRY_HARDER, true)
         hints.set(DecodeHintType.ALSO_INVERTED, true)
@@ -41,6 +51,7 @@ const BarcodeScanner = ({ onScan, onClose }) => {
         readerRef.current = reader
 
         const devices = await reader.listVideoInputDevices()
+        if (cancelled) return
 
         if (!devices || devices.length === 0) {
           setError('Nenhuma câmera encontrada.')
@@ -50,60 +61,141 @@ const BarcodeScanner = ({ onScan, onClose }) => {
         setCameras(devices)
 
         const back = devices.find(d =>
-          d.label.toLowerCase().includes('back') ||
-          d.label.toLowerCase().includes('traseira') ||
-          d.label.toLowerCase().includes('rear') ||
-          d.label.toLowerCase().includes('environment')
+          /back|traseira|rear|environment/i.test(d.label || ''),
         )
-
-        const deviceId = back?.deviceId || devices[0]?.deviceId || ''
+        const deviceId = back?.deviceId || devices[0].deviceId
         setSelectedCamera(deviceId)
-
-        startScanning(reader, deviceId)
-
+        startScanning(deviceId)
       } catch (err) {
         console.error(err)
-        setError('Erro ao acessar câmera. Verifique permissões.')
+        if (!cancelled) setError('Erro ao acessar câmera. Verifique permissões.')
       }
     }
 
     initCamera()
 
     return () => {
-      if (readerRef.current) {
-        readerRef.current.reset()
+      cancelled = true
+      const track = trackRef.current
+      if (track && track.readyState === 'live') {
+        // Best-effort: turn off torch before tear-down (avoids leaving phone light on)
+        track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {})
       }
+      trackRef.current = null
+      readerRef.current?.reset()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const startScanning = (reader, deviceId) => {
-    if (!videoRef.current || !deviceId) return
+  const startScanning = (deviceId) => {
+    if (!videoRef.current || !deviceId || !readerRef.current) return
 
-    reader.reset()
+    readerRef.current.reset()
+    trackRef.current = null
+    setTorchSupported(false)
+    setTorchOn(false)
+    setZoomCaps(null)
+    setZoomLevel(1)
 
-    reader.decodeFromVideoDevice(deviceId, videoRef.current, (result, err) => {
-      if (result) {
-        // 🔥 pequeno delay evita bug em alguns celulares
-        const text = result.getText()
+    // HD constraints + continuous autofocus when supported.
+    // Browsers that don't support these fields silently ignore them.
+    const constraints = {
+      video: {
+        deviceId: { exact: deviceId },
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+        advanced: [{ focusMode: 'continuous' }],
+      },
+    }
 
-        setTimeout(() => {
-          reader.reset()
-        }, 300)
+    readerRef.current
+      .decodeFromConstraints(constraints, videoRef.current, (result) => {
+        if (result) {
+          const text = result.getText()
+          // Haptic feedback (no-op on desktop / unsupported browsers)
+          try { navigator.vibrate?.(80) } catch {}
+          // Stop continuous decoding so we don't fire onScan repeatedly
+          setTimeout(() => readerRef.current?.reset(), 300)
+          onScan(text)
+        }
+      })
+      .then(() => {
+        // After the stream is attached, inspect the live track for capabilities
+        const stream = videoRef.current?.srcObject
+        const track = stream?.getVideoTracks?.()[0]
+        if (!track) return
+        trackRef.current = track
 
-        onScan(text)
-      }
-    }).catch((err) => {
-      console.error(err)
-      setError('Erro ao iniciar câmera: ' + (err.message || ''))
-    })
+        const caps = track.getCapabilities ? track.getCapabilities() : {}
+        if (caps.torch) setTorchSupported(true)
+        if (caps.zoom && typeof caps.zoom === 'object') {
+          const min = caps.zoom.min ?? 1
+          const max = caps.zoom.max ?? 1
+          const step = caps.zoom.step ?? 0.1
+          if (max > min) {
+            setZoomCaps({ min, max, step })
+            const settings = track.getSettings?.() || {}
+            setZoomLevel(settings.zoom ?? min)
+          }
+        }
+      })
+      .catch((err) => {
+        console.error(err)
+        setError('Erro ao iniciar câmera: ' + (err.message || ''))
+      })
   }
 
   const handleCameraChange = (e) => {
     const deviceId = e.target.value
     setSelectedCamera(deviceId)
+    startScanning(deviceId)
+  }
 
-    if (readerRef.current) {
-      startScanning(readerRef.current, deviceId)
+  const toggleTorch = async () => {
+    const track = trackRef.current
+    if (!track) return
+    const next = !torchOn
+    try {
+      await track.applyConstraints({ advanced: [{ torch: next }] })
+      setTorchOn(next)
+    } catch (err) {
+      console.error('torch toggle failed', err)
+      setTorchSupported(false)
+    }
+  }
+
+  const handleZoomChange = async (e) => {
+    const value = Number(e.target.value)
+    setZoomLevel(value)
+    const track = trackRef.current
+    if (!track) return
+    try {
+      await track.applyConstraints({ advanced: [{ zoom: value }] })
+    } catch (err) {
+      console.error('zoom failed', err)
+    }
+  }
+
+  // Tap-to-focus: ask the camera to focus where the user clicked.
+  // pointsOfInterest is normalized [0..1] coordinates. Browsers without it ignore.
+  const handleVideoTap = async (e) => {
+    const track = trackRef.current
+    if (!track) return
+    const caps = track.getCapabilities?.() || {}
+    if (!caps.pointsOfInterest && !Array.isArray(caps.focusMode)) return
+
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+    const y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height))
+    const advanced = []
+    if (caps.focusMode?.includes?.('single-shot')) advanced.push({ focusMode: 'single-shot' })
+    if (caps.pointsOfInterest) advanced.push({ pointsOfInterest: [{ x, y }] })
+    if (advanced.length === 0) return
+
+    try {
+      await track.applyConstraints({ advanced })
+    } catch {
+      // Ignore — focus is best-effort
     }
   }
 
@@ -119,12 +211,32 @@ const BarcodeScanner = ({ onScan, onClose }) => {
             Escanear Código de Barras
           </h3>
 
-          <button
-            onClick={onClose}
-            className="p-1.5 text-secondary hover:text-primary"
-          >
-            ✕
-          </button>
+          <div className="flex items-center gap-1">
+            {torchSupported && (
+              <button
+                onClick={toggleTorch}
+                title={torchOn ? 'Desligar lanterna' : 'Ligar lanterna'}
+                aria-label={torchOn ? 'Desligar lanterna' : 'Ligar lanterna'}
+                className={`p-1.5 rounded transition-colors ${
+                  torchOn
+                    ? 'text-yellow-300 bg-yellow-300/10'
+                    : 'text-secondary hover:text-primary'
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                </svg>
+              </button>
+            )}
+
+            <button
+              onClick={onClose}
+              aria-label="Fechar"
+              className="p-1.5 text-secondary hover:text-primary"
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
         {/* Camera selector */}
@@ -144,20 +256,40 @@ const BarcodeScanner = ({ onScan, onClose }) => {
           </div>
         )}
 
-        {/* 🔥 VOLTOU PRO LAYOUT ANTIGO (MAIS ESTÁVEL) */}
+        {/* Video */}
         <div className="relative aspect-[3/4] sm:aspect-[4/3] bg-black">
           <video
             ref={videoRef}
             autoPlay
             playsInline
             muted
-            className="w-full h-full object-cover"
+            onClick={handleVideoTap}
+            className="w-full h-full object-cover cursor-crosshair"
           />
 
-          {/* linha simples (menos poluição visual) */}
+          {/* Scanning line */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="w-[80%] h-[2px] bg-red-500 animate-pulse" />
           </div>
+
+          {/* Zoom slider — só aparece se a câmara suportar */}
+          {zoomCaps && (
+            <div className="absolute bottom-2 left-3 right-3 flex items-center gap-2 bg-black/55 backdrop-blur rounded px-3 py-1.5">
+              <span className="text-[10px] font-bold text-white/80 uppercase tracking-wider shrink-0">Zoom</span>
+              <input
+                type="range"
+                min={zoomCaps.min}
+                max={zoomCaps.max}
+                step={zoomCaps.step}
+                value={zoomLevel}
+                onChange={handleZoomChange}
+                className="flex-1 accent-red-500"
+              />
+              <span className="text-[10px] font-mono text-white/80 w-10 text-right">
+                {Number(zoomLevel).toFixed(1)}x
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Error */}

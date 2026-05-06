@@ -273,6 +273,30 @@ export function parseGS1Barcode(rawString) {
     }
   }
 
+  // ── Sanity check ──
+  // Single-box weights should never exceed ~300 lb (~136 kg). Anything outside
+  // this range is almost certainly a misread (e.g. wrong decimal-position digit
+  // in AI 320x/310x) or the parser locking onto a non-weight field.
+  // Drop the value silently — the UI already falls back to manual entry when
+  // weightLb is null.
+  const MAX_LB = 300
+  const MIN_LB = 0.05
+  const MAX_KG = MAX_LB / 2.20462
+  const MIN_KG = MIN_LB / 2.20462
+  const inRangeLb = (v) => Number.isFinite(v) && v >= MIN_LB && v <= MAX_LB
+  const inRangeKg = (v) => Number.isFinite(v) && v >= MIN_KG && v <= MAX_KG
+
+  if (result.weightLb != null && !inRangeLb(result.weightLb)) {
+    result.weightOutOfRange = result.weightLb
+    delete result.weightLb
+  }
+  if (result.weightKg != null && !inRangeKg(result.weightKg)) {
+    if (result.weightOutOfRange == null) result.weightOutOfRange = result.weightKg
+    delete result.weightKg
+  }
+  if (result.grossWeightLb != null && !inRangeLb(result.grossWeightLb)) delete result.grossWeightLb
+  if (result.grossWeightKg != null && !inRangeKg(result.grossWeightKg)) delete result.grossWeightKg
+
   // Flag: did the barcode contain weight data?
   result.hasWeight = result.weightLb != null || result.weightKg != null
 

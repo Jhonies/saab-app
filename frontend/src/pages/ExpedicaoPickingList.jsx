@@ -97,47 +97,81 @@ const ExpedicaoPickingList = () => {
     setScannerOpen(true)
   }
 
+  const focusWeightInput = (target) => {
+    if (!target) return
+    setTimeout(() => {
+      const input = document.querySelector(`[data-box-id="${target.itemId}-${target.boxNum}"]`)
+      if (input) { input.focus(); input.select() }
+    }, 200)
+  }
+
   const handleScan = async (rawText) => {
     setScannerOpen(false)
     const parsed = parseGS1Barcode(rawText)
-    setScanResult(parsed)
+    setScanError('')
 
     if (!parsed.gtin) {
-      setScanError('Código lido mas sem GTIN detectado. Tente novamente.')
+      setScanResult(parsed)
+      setScanError('noGtin')
       return
     }
 
-    // Fill weight if available
-    if (scanTarget && parsed.weightLb != null) {
-      setBoxWeight(scanTarget.itemId, scanTarget.boxNum, String(parsed.weightLb))
+    if (!scanTarget) {
+      setScanResult(parsed)
+      return
+    }
+    const targetItem = order.items.find(i => i.id === scanTarget.itemId)
+    if (!targetItem) {
+      setScanResult(parsed)
+      setScanError('noTarget')
+      return
     }
 
-    // Look up product by GTIN
+    // Look up the GTIN. We resolve the product BEFORE deciding whether to apply
+    // the parsed weight — never trust a weight from a barcode whose product
+    // doesn't match the item we're picking.
+    let mapping = null
     try {
-      const mapping = await lookupGtin(parsed.gtin)
-      setScanResult(prev => ({ ...prev, productName: mapping.product?.name }))
-
-      if (!parsed.hasWeight && scanTarget) {
-        setScanError('noWeight')
-        // Auto-focus the weight input after a small delay
-        setTimeout(() => {
-          const input = document.querySelector(`[data-box-id="${scanTarget.itemId}-${scanTarget.boxNum}"]`)
-          if (input) { input.focus(); input.select() }
-        }, 200)
-      } else {
-        setScanError('')
-      }
+      mapping = await lookupGtin(parsed.gtin)
     } catch {
-      // GTIN not mapped yet — offer to register
-      if (!parsed.hasWeight && scanTarget) {
-        setScanError('noWeightUnmapped')
-        setTimeout(() => {
-          const input = document.querySelector(`[data-box-id="${scanTarget.itemId}-${scanTarget.boxNum}"]`)
-          if (input) { input.focus(); input.select() }
-        }, 200)
+      // GTIN not registered — handled below
+    }
+
+    setScanResult({
+      ...parsed,
+      productName: mapping?.product?.name,
+      expectedProductName: targetItem.product?.name,
+    })
+
+    // Caso 1: GTIN mapeado a produto DIFERENTE → recusar peso
+    if (mapping && mapping.product?.id !== targetItem.productId) {
+      setScanError('mismatch')
+      return
+    }
+
+    // Caso 2: GTIN mapeado e bate com o item → aplicar peso (se houver)
+    if (mapping) {
+      if (parsed.weightLb != null) {
+        setBoxWeight(scanTarget.itemId, scanTarget.boxNum, String(parsed.weightLb))
+        setScanError('')
+      } else if (parsed.weightOutOfRange != null) {
+        setScanError('weightInvalid')
+        focusWeightInput(scanTarget)
       } else {
-        setScanError(`unmapped`)
+        setScanError('noWeight')
+        focusWeightInput(scanTarget)
       }
+      return
+    }
+
+    // Caso 3: GTIN não mapeado → exigir confirmação manual via "Registrar"
+    if (parsed.weightOutOfRange != null) {
+      setScanError('weightInvalidUnmapped')
+    } else if (parsed.weightLb != null) {
+      setScanError('unmappedWithWeight')
+    } else {
+      setScanError('noWeightUnmapped')
+      focusWeightInput(scanTarget)
     }
   }
 
@@ -146,6 +180,12 @@ const ExpedicaoPickingList = () => {
       await createGtinMapping(gtin, productId)
       setScanError('')
       setScanResult(prev => ({ ...prev, registered: true }))
+      // Após confirmação explícita do utilizador, aplicar o peso se houver
+      if (scanTarget && scanResult?.weightLb != null) {
+        setBoxWeight(scanTarget.itemId, scanTarget.boxNum, String(scanResult.weightLb))
+      } else if (scanTarget) {
+        focusWeightInput(scanTarget)
+      }
     } catch {
       setScanError('Erro ao registrar GTIN.')
     }
@@ -464,17 +504,19 @@ const ExpedicaoPickingList = () => {
       {/* ── Scan Result Banner ── */}
       {scanResult && (
         <div className={`bg-surface border rounded-md px-5 py-4 flex flex-col gap-2 ${
-          scanError === 'noWeight' || scanError === 'noWeightUnmapped'
-            ? 'border-warn'
-            : scanError === 'unmapped'
-            ? 'border-warn'
-            : scanError
+          ['mismatch', 'noGtin', 'noTarget', 'weightInvalid', 'weightInvalidUnmapped'].includes(scanError)
             ? 'border-error'
-            : 'border-ok'
+            : !scanError
+            ? 'border-ok'
+            : 'border-warn'
         }`}>
           <div className="flex items-center justify-between">
             <p className="text-xs font-bold uppercase tracking-wider text-secondary m-0">
-              {scanResult.hasWeight ? '✅ Scan Completo' : '⚠️ Scan Parcial'}
+              {scanError === 'mismatch'
+                ? '❌ Produto Errado'
+                : !scanError
+                ? '✅ Scan Completo'
+                : '⚠️ Scan Parcial'}
             </p>
             <button
               onClick={() => { setScanResult(null); setScanError('') }}
@@ -500,9 +542,34 @@ const ExpedicaoPickingList = () => {
             {scanResult.expiryDate && <p className="text-xs text-secondary m-0">Validade: {scanResult.expiryDate}</p>}
           </div>
 
-          {/* No weight warning */}
+          {/* Mismatch — GTIN aponta para outro produto */}
+          {scanError === 'mismatch' && (
+            <div className="bg-[rgba(220,38,38,0.08)] border border-error rounded px-3 py-2 mt-1">
+              <p className="text-xs text-error m-0 font-bold">Produto errado nesta caixa.</p>
+              <p className="text-xs text-secondary m-0 mt-1">
+                Esperado: <strong>{scanResult.expectedProductName || '—'}</strong><br />
+                Lido: <strong>{scanResult.productName || '—'}</strong>
+              </p>
+              <p className="text-xs text-secondary m-0 mt-1">
+                O peso <strong>não</strong> foi aplicado. Verifique a caixa antes de pesar.
+              </p>
+            </div>
+          )}
+
+          {/* Peso fora do intervalo razoável (provável misread do scanner) */}
+          {(scanError === 'weightInvalid' || scanError === 'weightInvalidUnmapped') && (
+            <div className="flex items-start gap-2 bg-[rgba(220,38,38,0.08)] border border-error rounded px-3 py-2 mt-1">
+              <span className="text-error text-base">⚠️</span>
+              <p className="text-xs text-error m-0 leading-relaxed">
+                <strong>Peso lido inválido{scanResult.weightOutOfRange != null ? ` (${Number(scanResult.weightOutOfRange).toFixed(2)})` : ''}.</strong><br />
+                Provável erro de leitura. Pese a caixa na balança e digite manualmente.
+              </p>
+            </div>
+          )}
+
+          {/* Sem peso codificado no barcode */}
           {(scanError === 'noWeight' || scanError === 'noWeightUnmapped') && (
-            <div className="flex items-center gap-2 bg-[rgba(200,150,0,0.08)] border border-warn rounded px-3 py-2 mt-1">
+            <div className="flex items-start gap-2 bg-[rgba(200,150,0,0.08)] border border-warn rounded px-3 py-2 mt-1">
               <span className="text-warn text-base">⚠️</span>
               <p className="text-xs text-warn m-0 leading-relaxed">
                 <strong>Peso não encontrado no código de barras.</strong><br />
@@ -511,8 +578,8 @@ const ExpedicaoPickingList = () => {
             </div>
           )}
 
-          {/* Unmapped GTIN */}
-          {(scanError === 'unmapped' || scanError === 'noWeightUnmapped') && (
+          {/* GTIN não mapeado — pedir registo (engloba unmapped, com peso, sem peso, peso inválido) */}
+          {['unmappedWithWeight', 'noWeightUnmapped', 'weightInvalidUnmapped'].includes(scanError) && (
             <div className="flex items-center gap-3 flex-wrap">
               <p className="text-xs text-warn m-0">GTIN {scanResult.gtin} não mapeado no sistema.</p>
               {scanResult.gtin && !scanResult.registered && scanTarget && (
@@ -523,14 +590,25 @@ const ExpedicaoPickingList = () => {
                     if (item) handleRegisterGtin(scanResult.gtin, item.productId)
                   }}
                 >
-                  Registrar GTIN para este produto
+                  {scanError === 'unmappedWithWeight'
+                    ? `Registrar e aplicar peso (${Number(scanResult.weightLb).toFixed(2)} lb)`
+                    : 'Registrar GTIN para este produto'}
                 </button>
               )}
             </div>
           )}
 
-          {/* Generic error */}
-          {scanError && !['noWeight', 'noWeightUnmapped', 'unmapped'].includes(scanError) && (
+          {/* Sem GTIN detectado */}
+          {scanError === 'noGtin' && (
+            <p className="text-xs text-error m-0">Código lido mas sem GTIN detectado. Tente novamente.</p>
+          )}
+
+          {/* Erros literais (strings genéricas) */}
+          {scanError && ![
+            'noWeight', 'noWeightUnmapped',
+            'unmappedWithWeight', 'weightInvalidUnmapped',
+            'mismatch', 'weightInvalid', 'noGtin', 'noTarget',
+          ].includes(scanError) && (
             <p className="text-xs text-error m-0">{scanError}</p>
           )}
 
